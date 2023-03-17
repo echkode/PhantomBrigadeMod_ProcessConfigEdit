@@ -144,9 +144,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				if (parts.Length != 2)
 				{
 					Debug.LogWarningFormat(
-						"Mod {0} ({1}) edit has invalid number of separators | line: {2}\n  {3}",
+						"Mod {0} ({1}) edit has invalid number of separators | path: {2}\n  line: {3}\n  {4}",
 						modIndex,
 						modID,
+						configEditPath,
 						i,
 						edit);
 					continue;
