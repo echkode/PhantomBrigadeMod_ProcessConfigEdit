@@ -12,6 +12,13 @@ namespace EchKode.PBMods.ProcessConfigEdit
 	[HarmonyPatch]
 	static class Patch
 	{
+		[HarmonyPatch(typeof(PhantomBrigade.Game.Systems.DataLinkerInitSystem), "Initialize")]
+		[HarmonyPostfix]
+		static void Dis_InitializePostfix()
+		{
+			DataLinkerInitSystem.Initialize();
+		}
+
 		[HarmonyPatch(typeof(PBModManager), "ProcessFieldEdit")]
 		[HarmonyPrefix]
 		static bool Mm_ProcessFieldEditPrefix(

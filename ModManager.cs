@@ -16,7 +16,7 @@ using UnityEngine;
 
 namespace EchKode.PBMods.ProcessConfigEdit
 {
-	static class ModManager
+	static partial class ModManager
 	{
 		internal enum EditOperation
 		{

@@ -54,9 +54,11 @@
   <ItemGroup>
     <Compile Include="ConsoleCommands\EquipmentInspector.cs" />
     <Compile Include="ConsoleCommands\Loader.cs" />
+    <Compile Include="DataLinkerInitSystem.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="ModLink.cs" />
     <Compile Include="ModManager.cs" />
+    <Compile Include="ModManagerLinker.cs" />
     <Compile Include="ModSettings.cs" />
     <Compile Include="Patch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
