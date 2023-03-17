@@ -72,6 +72,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		private static Type typeVector2;
 		private static Type typeVector3;
 		private static Type typeVector4;
+		private static Type typeColor;
 		private static Type typeIList;
 		private static Type typeHashSet;
 		private static Type typeIDictionary;
@@ -92,6 +93,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			typeVector2 = typeof(Vector2);
 			typeVector3 = typeof(Vector3);
 			typeVector4 = typeof(Vector4);
+			typeColor = typeof(Color);
 			typeIList = typeof(IList);
 			typeHashSet = typeof(HashSet<string>);
 			typeIDictionary = typeof(IDictionary);
@@ -121,6 +123,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				[typeVector2] = UpdateVector2Field,
 				[typeVector3] = UpdateVector3Field,
 				[typeVector4] = UpdateVector4Field,
+				[typeColor] = UpdateColorField,
 				[typeHashSet] = UpdateHashSet,
 				[typeEnum] = UpdateEnum,
 			};
@@ -761,6 +764,27 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				4,
 				ary => new Vector4(ary[0], ary[1], ary[2], ary[3]),
 				Vector4.zero);
+		}
+
+		private static void UpdateColorField(EditSpec spec, Action<object> update)
+		{
+			var v = Color.clear;
+			if (spec.state.op != EditOperation.DefaultValue)
+			{
+				var (ok, parsed) = ParseVectorValue(spec, 4, ary => new Vector4(ary[0], ary[1], ary[2], ary[3]));
+				if (!ok)
+				{
+					return;
+				}
+				var v4 = (Vector4)parsed;
+				v = new Color(v4.x, v4.y, v4.z, v4.w);
+			}
+
+			update(v);
+			Report(
+				spec,
+				"edits",
+				$"Color field modified with value {v}");
 		}
 
 		private static void UpdateVectorField(
