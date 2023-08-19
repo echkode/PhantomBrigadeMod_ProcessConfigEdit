@@ -647,7 +647,15 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				}
 
 				var parentMap = (IDictionary)spec.state.parent;
-				var targetKey = spec.state.targetKey;
+				var (keyOK, targetKey) = ResolveTargetKey(parentType, spec.state.targetKey);
+				if (!keyOK)
+				{
+					ReportWarning(
+						spec,
+						"attempts to edit",
+						$"Value is contained in a dictionary but the key {spec.state.pathSegment} cannot be cast to the correct type");
+					return (false, null);
+				}
 				return (true, v => parentMap[targetKey] = v);
 			}
 
@@ -669,6 +677,41 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			var parent = spec.state.parent;
 			var fieldInfo = spec.state.fieldInfo;
 			return (true, v => fieldInfo.SetValue(parent, v));
+		}
+
+		private static (bool, object) ResolveTargetKey(System.Type parentType, string targetKey)
+		{
+			if (!parentType.IsGenericType)
+			{
+				return (false, targetKey);
+			}
+			if (!parentType.IsConstructedGenericType)
+			{
+				return (false, targetKey);
+			}
+
+			var typeArgs = parentType.GetGenericArguments();
+			if (typeArgs.Length != 2)
+			{
+				return (false, targetKey);
+			}
+
+			var keyType = typeArgs[0];
+			if (keyType == typeof(string))
+			{
+				return (true, targetKey);
+			}
+
+			if (keyType == typeof(int))
+			{
+				if (!int.TryParse(targetKey, out var intKey))
+				{
+					return (false, targetKey);
+				}
+				return (true, intKey);
+			}
+
+			return (false, targetKey);
 		}
 
 		private static void UpdateStringField(EditSpec spec, Action<object> update)
