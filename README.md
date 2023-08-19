@@ -1,10 +1,8 @@
 # ProcessConfigEdit
 
+**This mod is no longer needed.** The game has been patched by the publisher to fix a number of issues with processing config edit files.
+
 A library mod for [Phantom Brigade](https://braceyourselfgames.com/phantom-brigade/) that works around an unintentional limitation with ConfigEdit processing.
-
-**This is a mod for mod makers.** If you choose to use this mod, you'll probably want to copy the code into your own mod.
-
-It is compatible with game patch **1.0.4**. All library mods are fragile and susceptible to breakage whenever a new version is released.
 
 The built-in ModManager has a mode that can edit the game's configuration files using YAML files that contain terse descriptions of the changes. The descriptions use a path syntax to target fields on the data objects being modified. Unfortunately, there's a limitation to the depth of field that can be targeted. Where this limitation is most prevalent is attempting to change the parents field on a part preset.
 
