@@ -56,7 +56,7 @@
     <Compile Include="ConsoleCommands\Loader.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="ModLink.cs" />
-    <Compile Include="ModManager.cs" />
+    <Compile Include="ModUtilities.cs" />
     <Compile Include="ModSettings.cs" />
     <Compile Include="Patch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

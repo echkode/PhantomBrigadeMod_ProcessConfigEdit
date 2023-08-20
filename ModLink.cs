@@ -46,7 +46,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				FileLog.Log("!!! PBMods patches applied");
 			}
 
-			ModManager.Initialize();
+			ModUtilities.Initialize();
 			ConsoleCommands.Loader.RegisterCommands();
 
 			Debug.LogFormat(

@@ -3,7 +3,7 @@
 
 using HarmonyLib;
 
-using PBModManager = PhantomBrigade.Mods.ModManager;
+using PBModUtilities = PhantomBrigade.Mods.ModUtilities;
 
 using UnityEngine;
 
@@ -12,9 +12,18 @@ namespace EchKode.PBMods.ProcessConfigEdit
 	[HarmonyPatch]
 	static class Patch
 	{
-		[HarmonyPatch(typeof(PBModManager), "ProcessFieldEdit")]
+		[HarmonyPatch(typeof(PBModUtilities), "ProcessFieldEdit", new System.Type[]
+		{
+			typeof(object),
+			typeof(string),
+			typeof(string),
+			typeof(string),
+			typeof(int),
+			typeof(string),
+			typeof(string),
+		})]
 		[HarmonyPrefix]
-		static bool Mm_ProcessFieldEditPrefix(
+		static bool Mu_ProcessFieldEditPrefix(
 			object target,
 			string filename,
 			string fieldPath,
@@ -23,11 +32,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			string modID,
 			string dataTypeName)
 		{
-			var spec = new ModManager.EditSpec()
+			var spec = new ModUtilities.EditSpec()
 			{
 				i = i,
 				modID = modID,
-				filename = ModManager.FindConfigKeyIfEmpty(target, dataTypeName, filename),
+				filename = ModUtilities.FindConfigKeyIfEmpty(target, dataTypeName, filename),
 				dataTypeName = dataTypeName,
 				root = target,
 				fieldPath = fieldPath,
@@ -42,7 +51,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					spec.filename,
 					spec.fieldPath);
 			}
-			ModManager.ProcessFieldEdit(spec);
+			ModUtilities.ProcessFieldEdit(spec);
 			return false;
 		}
 	}
