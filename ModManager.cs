@@ -49,7 +49,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			public bool atEndOfPath;
 			public int targetIndex;
 			public object parent;
-			public string targetKey;
+			public object targetKey;
 			public FieldInfo fieldInfo;
 			public Type targetType;
 		}
@@ -77,6 +77,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		private static Type typeHashSet;
 		private static Type typeIDictionary;
 		private static Type typeEnum;
+
+		private static HashSet<Type> allowedKeyTypes = new HashSet<Type>()
+		{
+			typeof(string),
+			typeof(int),
+		};
 
 		private static Dictionary<string, EditOperation> operationMap;
 		private static HashSet<EditOperation> allowedHashSetOperations;
@@ -485,21 +491,39 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		private static bool ProduceMapEntry(EditSpec spec)
 		{
 			var map = spec.state.target as IDictionary;
-			var key = spec.state.pathSegment;
-			var entryExists = map.Contains(key);
-
 			var entryTypes = map.GetType().GetGenericArguments();
 			var keyType = entryTypes[0];
 			var valueType = entryTypes[1];
+
+			if (!allowedKeyTypes.Contains(keyType))
+			{
+				var permittedTypes = string.Join(", ", allowedKeyTypes.Select(t => t.Name));
+				Report(
+					spec,
+					"attempts to edit",
+					$"Unable to produce map entry (step {spec.state.pathSegmentIndex}) - only keys of types [{permittedTypes}] are supported");
+				return false;
+			}
+
+			var key = spec.state.pathSegment;
+			var (keyOK, resolvedKey) = ResolveTargetKey(map.GetType(), key);
+			if (!keyOK)
+			{
+				Report(
+					spec,
+					"attempts to edit",
+					$"Checking map for key {key} (step {spec.state.pathSegmentIndex}) - unable to cast key to the correct type");
+				return false;
+			}
+			var entryExists = map.Contains(resolvedKey);
 
 			if (spec.state.atEndOfPath)
 			{
 				if (!EditMap(
 					spec,
 					map,
-					keyType,
 					valueType,
-					key,
+					resolvedKey,
 					entryExists))
 				{
 					return false;
@@ -517,7 +541,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			spec.state.parent = spec.state.target;
 			spec.state.fieldInfo = null;
 			spec.state.targetIndex = -1;
-			spec.state.targetKey = key;
+			spec.state.targetKey = resolvedKey;
 			spec.state.target = map[key];
 			spec.state.targetType = valueType;
 
@@ -527,7 +551,6 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		private static bool EditMap(
 			EditSpec spec,
 			IDictionary map,
-			Type keyType,
 			Type valueType,
 			object key,
 			bool entryExists)
@@ -536,15 +559,6 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (!entryExists)
 				{
-					if (keyType != typeString)
-					{
-						Report(
-							spec,
-							"attempts to edit",
-							$"Adding new dictionary entry of type {valueType.Name} to key {key} (step {spec.state.pathSegmentIndex}) - only string keys are supported");
-						return false;
-					}
-
 					object instance = DefaultValue(valueType);
 					map.Add(key, instance);
 					Report(
@@ -647,15 +661,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				}
 
 				var parentMap = (IDictionary)spec.state.parent;
-				var (keyOK, targetKey) = ResolveTargetKey(parentType, spec.state.targetKey);
-				if (!keyOK)
-				{
-					ReportWarning(
-						spec,
-						"attempts to edit",
-						$"Value is contained in a dictionary but the key {spec.state.pathSegment} cannot be cast to the correct type");
-					return (false, null);
-				}
+				var targetKey = spec.state.targetKey;
 				return (true, v => parentMap[targetKey] = v);
 			}
 
@@ -679,7 +685,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			return (true, v => fieldInfo.SetValue(parent, v));
 		}
 
-		private static (bool, object) ResolveTargetKey(System.Type parentType, string targetKey)
+		private static (bool, object) ResolveTargetKey(Type parentType, string targetKey)
 		{
 			if (!parentType.IsGenericType)
 			{
