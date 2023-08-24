@@ -134,19 +134,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				[typeEnum] = UpdateEnum,
 			};
 
-			var t = Traverse.Create(typeof(UtilitiesYAML));
-			var uytm = t.Field<Dictionary<string, Type>>("tagMappings").Value;
-			if (uytm == null)
-			{
-				var fi = AccessTools.DeclaredMethod(typeof(UtilitiesYAML), "LoadTagMappings");
-				if (fi != null)
-				{
-					fi.Invoke(null, new object[] { });
-					uytm = t.Field<Dictionary<string, Type>>("tagMappings").Value;
-				}
-			}
-
-			tagTypeMap = uytm ?? new Dictionary<string, Type>();
+			tagTypeMap = UtilitiesYAML.GetTagMappings();
 			if (ModLink.Settings.logging)
 			{
 				var mappings = new List<string>();
