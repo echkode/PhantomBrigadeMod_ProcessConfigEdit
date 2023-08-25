@@ -473,6 +473,15 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				return false;
 			}
 
+			if (outOfBounds)
+			{
+				ReportWarning(
+					spec,
+					"attempts to edit",
+					$"Index {spec.state.pathSegment} (step {spec.state.pathSegmentIndex}) can't be replaced as it's out of bounds for list size {list.Count}");
+				return false;
+			}
+
 			return true;
 		}
 
