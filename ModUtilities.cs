@@ -32,7 +32,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			NullValue,
 		}
 
-		internal partial class EditSpec
+		internal sealed partial class EditSpec
 		{
 			public string dataTypeName;
 			public object root;
@@ -41,22 +41,29 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			public string valueRaw;
 			public int modIndex;
 			public string modID;
+			public List<PathContext> pathContexts;
 			public EditState state = new EditState();
 		}
 
-		internal class EditState
+		internal class PathContext
 		{
+			public string fieldSegments;
+			public object parent;
 			public object target;
+			public Type targetType;
+			public int targetIndex;
+			public object targetKey;
+			public FieldInfo fieldInfo;
+		}
+
+		internal sealed class EditState : PathContext
+		{
+			public bool faulted;
 			public EditOperation op;
 			public int pathSegmentCount;
 			public int pathSegmentIndex;
 			public string pathSegment;
 			public bool atEndOfPath;
-			public int targetIndex;
-			public object parent;
-			public object targetKey;
-			public FieldInfo fieldInfo;
-			public Type targetType;
 		}
 
 		private static class Constants
@@ -68,6 +75,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				public const string DefaultValue = "!d";
 				public const string NullValue = "!n";
 			}
+
+			public const char PathSeparator = '.';
+			public const char ContextTokenChar = '^';
+			public const string ContextToken = "^";
 		}
 
 		private static Type typeString;
@@ -83,12 +94,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		private static Type typeIDictionary;
 		private static Type typeEnum;
 
-		private static HashSet<Type> allowedKeyTypes = new HashSet<Type>()
-		{
-			typeof(string),
-			typeof(int),
-		};
-
+		private static HashSet<Type> allowedKeyTypes;
+		private static HashSet<Type> terminalTypes;
 		private static Dictionary<string, EditOperation> operationMap;
 		private static HashSet<EditOperation> allowedHashSetOperations;
 		private static Dictionary<Type, Action<EditSpec, Action<object>>> updaterMap;
@@ -109,6 +116,21 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			typeHashSet = typeof(HashSet<string>);
 			typeIDictionary = typeof(IDictionary);
 			typeEnum = typeof(Enum);
+
+			allowedKeyTypes = new HashSet<Type>()
+			{
+				typeString,
+				typeInt,
+			};
+
+			terminalTypes = new HashSet<Type>()
+			{
+				typeString,
+				typeBool,
+				typeInt,
+				typeFloat,
+				typeEnum,
+			};
 
 			operationMap = new Dictionary<string, EditOperation>()
 			{
@@ -210,12 +232,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			spec.state.op = eop;
 			spec.valueRaw = valueRaw;
 
-			spec.state.target = spec.root;
 			spec.state.parent = spec.root;
+			spec.state.target = spec.root;
+			spec.state.targetType = null;
 			spec.state.targetIndex = -1;
 			spec.state.targetKey = null;
 			spec.state.fieldInfo = null;
-			spec.state.targetType = null;
 
 			if (!WalkFieldPath(spec))
 			{
@@ -450,11 +472,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 
 			spec.state.parent = spec.state.target;
-			spec.state.fieldInfo = null;
-			spec.state.targetIndex = result;
-			spec.state.targetKey = null;
 			spec.state.target = list[result];
 			spec.state.targetType = elementType;
+			spec.state.targetIndex = result;
+			spec.state.targetKey = null;
+			spec.state.fieldInfo = null;
 
 			return true;
 		}
@@ -626,11 +648,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 
 			spec.state.parent = spec.state.target;
-			spec.state.fieldInfo = null;
-			spec.state.targetIndex = -1;
-			spec.state.targetKey = resolvedKey;
 			spec.state.target = map[key];
 			spec.state.targetType = valueType;
+			spec.state.targetIndex = -1;
+			spec.state.targetKey = resolvedKey;
+			spec.state.fieldInfo = null;
 
 			return true;
 		}
@@ -736,11 +758,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 
 			spec.state.parent = spec.state.target;
-			spec.state.fieldInfo = field;
-			spec.state.targetIndex = -1;
-			spec.state.targetKey = null;
 			spec.state.target = field.GetValue(spec.state.target);
 			spec.state.targetType = field.FieldType;
+			spec.state.targetIndex = -1;
+			spec.state.targetKey = null;
+			spec.state.fieldInfo = field;
 
 			return true;
 		}
@@ -1233,7 +1255,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 		}
 
-		private static Regex reFormatFieldSpecifier = new Regex(@"\{\d+\}");
+		private static readonly Regex reFormatFieldSpecifier = new Regex(@"\{\d+\}");
 
 		partial class EditSpec
 		{
