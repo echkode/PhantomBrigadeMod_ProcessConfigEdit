@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 
 using HarmonyLib;
 
@@ -199,7 +200,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"fails to edit",
-					$"Missing field path ({spec.fieldPath}) or raw value ({spec.valueRaw})");
+					"Missing field path ({0}) or raw value ({1})",
+					spec.fieldPath,
+					spec.valueRaw);
 				return;
 			}
 
@@ -232,7 +235,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Value type {spec.state.targetType.GetNiceTypeName()} cannot be set to null");
+						"Value type {0} cannot be set to null",
+						spec.state.targetType.GetNiceTypeName());
 					return;
 				}
 
@@ -240,7 +244,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"edits",
-					$"Assigning null to target field");
+					"Assigning null to target field");
 				return;
 			}
 
@@ -250,12 +254,24 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				return;
 			}
 
+			if (spec.state.op == EditOperation.Overwrite)
+			{
+				ReportWarning(
+					spec,
+					"attempts to edit",
+					"Value type {0} has no string parsing implementation -- try using {1} keyword if you're after filling it with default instance",
+					spec.state.targetType.GetNiceTypeName(),
+					Constants.Operator.DefaultValue);
+				return;
+			}
+
 			if (spec.state.op != EditOperation.DefaultValue)
 			{
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Value type {spec.state.targetType.GetNiceTypeName()} has no string parsing implementation - try using {Constants.Operator.DefaultValue} keyword if you're after filling it with default instance");
+					"Can't apply {0} operation at this point in the field path",
+					spec.state.op);
 				return;
 			}
 
@@ -268,7 +284,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"There is no type associated with tag {valueRaw}");
+						"There is no type associated with tag {0}",
+						valueRaw);
 					return;
 				}
 				if (!spec.state.targetType.IsAssignableFrom(instanceType))
@@ -276,7 +293,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Tag type {instanceType.GetNiceTypeName()} is not compatible with field type {spec.state.targetType.GetNiceTypeName()} | tag: {valueRaw}");
+						"Tag type {0} is not compatible with field type {1} | tag: {2}",
+						instanceType.GetNiceTypeName(),
+						spec.state.targetType.GetNiceTypeName(),
+						valueRaw);
 					return;
 				}
 			}
@@ -288,7 +308,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"edits",
-					$"Assigning new default object of type {instanceType.GetNiceTypeName()} to target index {spec.state.targetIndex}");
+					"Assigning new default object of type {0} to target index {1}",
+					instanceType.GetNiceTypeName(),
+					spec.state.targetIndex);
 				return;
 			}
 
@@ -299,7 +321,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"edits",
-					$"Assigning new default object of type {instanceType.GetNiceTypeName()} to target key {spec.state.targetKey}");
+					"Assigning new default object of type {0} to target key {1}",
+					instanceType.GetNiceTypeName(),
+					spec.state.targetKey);
 				return;
 			}
 
@@ -308,7 +332,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"no target field info -- WalkFieldPath() failed to terminate properly | {spec}");
+					"no target field info -- WalkFieldPath() failed to terminate properly | {0}",
+					spec);
 				return;
 			}
 
@@ -317,7 +342,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Report(
 				spec,
 				"edits",
-				$"Assigning new default object of type {instanceType.GetNiceTypeName()} to target field");
+				"Assigning new default object of type {0} to target field",
+				instanceType.GetNiceTypeName());
 		}
 
 		private static (EditOperation, string) ParseOperation(string valueRaw)
@@ -349,7 +375,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Can't proceed past {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}), current target reference is null");
+						"Can't proceed past {0} (I{1} S{2}/{3}) -- current target reference is null",
+						spec.state.pathSegment,
+						spec.state.pathSegmentIndex,
+						spec.state.pathSegmentIndex + 1,
+						spec.state.pathSegmentCount);
 					return false;
 				}
 
@@ -386,7 +416,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Index {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) can't be parsed or is negative");
+					"Index {0} (I{1} S{2}/{3}) can't be parsed or is negative",
+					spec.state.pathSegment,
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount);
 				return false;
 			}
 
@@ -406,7 +440,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Can't proceed past {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}), current target reference is beyond end of list (size={list.Count})");
+					"Can't proceed past {0} (I{1} S{2}/{3}) -- current target reference is beyond end of list (size={4})",
+					spec.state.pathSegment,
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount,
+					list.Count);
 				return false;
 			}
 
@@ -437,7 +476,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Default value for list insert is null (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) -- likely missing a YAML tag");
+						"Default value for list insert is null (I{0} S{1}/{2}) -- likely missing a YAML tag",
+						spec.state.pathSegmentIndex,
+						spec.state.pathSegmentIndex + 1,
+						spec.state.pathSegmentCount);
 					return false;
 				}
 
@@ -447,7 +489,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					Report(
 						spec,
 						"edits",
-						$"Adding new entry of type {elementType.GetNiceTypeName()} to end of the list (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount})");
+						"Adding new entry of type {0} to end of the list (I{1} S{2}/{3})",
+						elementType.GetNiceTypeName(),
+						spec.state.pathSegmentIndex,
+						spec.state.pathSegmentIndex + 1,
+						spec.state.pathSegmentCount);
 				}
 				else
 				{
@@ -455,7 +501,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					Report(
 						spec,
 						"edits",
-						$"Inserting new entry of type {elementType.GetNiceTypeName()} to index {index} of the list (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount})");
+						"Inserting new entry of type {0} to index {1} of the list (I{2} S{3}/{4})",
+						elementType.GetNiceTypeName(),
+						index,
+						spec.state.pathSegmentIndex,
+						spec.state.pathSegmentIndex + 1,
+						spec.state.pathSegmentCount);
 				}
 
 				var isTag = !emptyValue && elementType != typeString && spec.valueRaw.StartsWith("!");
@@ -474,7 +525,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Index {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) can't be removed as it's out of bounds for list size {list.Count}");
+						"Index {0} (I{1} S{2}/{3}) can't be removed as it's out of bounds for list size {4}",
+						spec.state.pathSegment,
+						spec.state.pathSegmentIndex,
+						spec.state.pathSegmentIndex + 1,
+						spec.state.pathSegmentCount,
+						list.Count);
 					return false;
 				}
 
@@ -482,7 +538,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"edits",
-					$"Removing entry at index {index} of the list (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount})");
+					"Removing entry at index {0} of the list (I{1} S{2}/{3})",
+					index,
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount);
 				return false;
 			}
 
@@ -491,7 +551,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Index {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) can't be replaced as it's out of bounds for list size {list.Count}");
+					"Index {0} (I{1} S{2}/{3}) can't be replaced as it's out of bounds for list size {4}",
+					spec.state.pathSegment,
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount,
+					list.Count);
 				return false;
 			}
 
@@ -511,7 +576,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"attempts to edit",
-					$"Unable to produce map entry (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) - only keys of types [{permittedTypes}] are supported");
+					"Unable to produce map entry (I{0} S{1}/{2}) - only keys of types [{3}] are supported",
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount,
+					permittedTypes);
 				return false;
 			}
 
@@ -522,7 +591,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"attempts to edit",
-					$"Checking map for key {key} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) - unable to cast key to the correct type");
+					"Unable to produce map entry for key {0} (I{1} S{2}/{3}) -- key can't be coerced to the correct type",
+					key,
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount);
 				return false;
 			}
 			var entryExists = map.Contains(resolvedKey);
@@ -544,7 +617,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Can't proceed past {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}), current target reference doesn't exist in dictionary)");
+					"Can't proceed past {0} (I{1} S{2}/{3}), current target reference doesn't exist in dictionary)",
+					spec.state.pathSegment,
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount);
 				return false;
 			}
 
@@ -576,21 +653,30 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						ReportWarning(
 							spec,
 							"attempts to edit",
-							$"Default value for insert with key {key} is null (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) -- likely missing a YAML tag");
+							"Default value for insert with key {0} is null (I{1} S{2}/{3}) -- likely missing a YAML tag",
+							key,
+							spec.state.pathSegmentIndex,
+							spec.state.pathSegmentIndex + 1,
+							spec.state.pathSegmentCount);
 						return false;
 					}
 					map.Add(key, instance);
 					Report(
 						spec,
 						"edits",
-						$"Adding key {key} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) to target dictionary");
+						"Adding key {0} (I{1} S{2}/{3}) to target dictionary",
+						key,
+						spec.state.pathSegmentIndex,
+						spec.state.pathSegmentIndex + 1,
+						spec.state.pathSegmentCount);
 				}
 				else
 				{
 					Report(
 						spec,
 						"attempts to edit",
-						$"Key {key} already exists, ignoring the command to add it");
+						"Key {0} already exists, ignoring the command to add it",
+						key);
 				}
 
 				var isTag = !emptyValue && valueType != typeString && spec.valueRaw.StartsWith("!");
@@ -609,14 +695,22 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Key {key} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) can't be removed from target dictionary - it can't be found");
+						"Key {0} (I{1} S{2}/{3}) can't be removed from target dictionary -- it can't be found",
+						key,
+						spec.state.pathSegmentIndex,
+						spec.state.pathSegmentIndex + 1,
+						spec.state.pathSegmentCount);
 					return false;
 				}
 
 				Report(
 					spec,
 					"edits",
-					$"Removing key {key} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) from target dictionary");
+					"Removing key {0} (I{1} S{2}/{3}) from target dictionary",
+					key,
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount);
 				map.Remove(key);
 				return false;
 			}
@@ -632,7 +726,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Field {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) could not be found on type {spec.state.targetType}");
+					"Field {0} (I{1} S{2}/{3}) could not be found on type {4}",
+					spec.state.pathSegment,
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount,
+					spec.state.targetType.GetNiceTypeName());
 				return false;
 			}
 
@@ -653,7 +752,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Arrived at a null parent after walking field path (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount})");
+					"Arrived at a null parent after walking field path (I{0} S{1}/{2})",
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount);
 				return (false, null);
 			}
 
@@ -666,7 +768,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Value is contained in a list but list index {spec.state.pathSegment} is not valid");
+						"Value is contained in a list but list index {0} is not valid",
+						spec.state.pathSegment);
 					return (false, null);
 				}
 
@@ -683,7 +786,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Value is contained in a dictionary but the key {spec.state.pathSegment} is not valid");
+						"Value is contained in a dictionary but the key {0} is not valid",
+						spec.state.pathSegment);
 					return (false, null);
 				}
 
@@ -697,7 +801,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Value can't be modified due to missing field info");
+					"Value can't be modified due to missing field info");
 				return (false, null);
 			}
 
@@ -754,7 +858,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Report(
 				spec,
 				"edits",
-				$"String field modified with value {v}");
+				"String field modified with value {0}",
+				v);
 		}
 
 		private static void UpdateBoolField(EditSpec spec, Action<object> update)
@@ -765,7 +870,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Report(
 				spec,
 				"edits",
-				$"Bool field modified with value {v}");
+				"Bool field modified with value {0}",
+				v);
 		}
 
 		private static void UpdateIntField(EditSpec spec, Action<object> update)
@@ -778,7 +884,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Integer field can't be overwritten - can't parse raw value {spec.valueRaw}");
+						"Integer field can't be overwritten -- can't parse raw value {0}",
+						spec.valueRaw);
 					return;
 				}
 			}
@@ -787,7 +894,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Report(
 				spec,
 				"edits",
-				$"Integer field modified with value {v}");
+				"Integer field modified with value {0}",
+				v);
 		}
 
 		private static void UpdateFloatField(EditSpec spec, Action<object> update)
@@ -800,7 +908,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Float field can't be overwritten - can't parse raw value {spec.valueRaw}");
+						"Float field can't be overwritten -- can't parse raw value {0}",
+						spec.valueRaw);
 					return;
 				}
 			}
@@ -809,7 +918,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Report(
 				spec,
 				"edits",
-				$"Float field modified with value {v}");
+				"Float field modified with value {0}",
+				v);
 		}
 
 		private static void UpdateVector2Field(EditSpec spec, Action<object> update)
@@ -852,7 +962,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Color field can't be overwritten - can't parse raw value {spec.valueRaw} - missing parentheses");
+						"Color field can't be overwritten - can't parse raw value {0} - missing parentheses",
+						spec.valueRaw);
 					return;
 				}
 				try
@@ -864,7 +975,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Can't parse raw value {spec.valueRaw} -- {ex.Message}");
+						"Can't parse raw value {0} -- {1}",
+						spec.valueRaw,
+						ex.Message);
 					return;
 				}
 			}
@@ -873,7 +986,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Report(
 				spec,
 				"edits",
-				$"Color field modified with value {v}");
+				"Color field modified with value {0}",
+				v);
 		}
 
 		private static void UpdateVectorField(
@@ -898,7 +1012,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Report(
 				spec,
 				"edits",
-				$"Vector{vectorLength} field modified with value {v}");
+				"Vector{0} field modified with value {1}",
+				vectorLength,
+				v);
 		}
 
 		private static (bool, object) ParseVectorValue(
@@ -911,7 +1027,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Vector{vectorLength} field can't be overwritten - can't parse raw value {spec.valueRaw} - missing parentheses");
+					"Vector{0} field can't be overwritten -- can't parse raw value {1} - missing parentheses",
+					vectorLength,
+					spec.valueRaw);
 				return (false, null);
 			}
 
@@ -922,7 +1040,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Vector{vectorLength} field can't be overwritten - can't parse raw value {spec.valueRaw} - invalid number of elements");
+					"Vector{0} field can't be overwritten -- can't parse raw value {1} - invalid number of elements",
+					vectorLength,
+					spec.valueRaw);
 				return (false, null);
 			}
 
@@ -934,7 +1054,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Vector{vectorLength} field can't be overwritten - can't parse raw value {spec.valueRaw}");
+						"Vector{0} field can't be overwritten -- can't parse raw value {1}",
+						vectorLength,
+						spec.valueRaw);
 					return (false, null);
 				}
 				parsed[i] = result;
@@ -950,7 +1072,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					"No addition or removal keywords detected - no other operations are supported on hashsets");
+					"No addition or removal keywords detected -- no other operations are supported on hashsets");
 				return;
 			}
 
@@ -969,7 +1091,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"edits",
-					$"Assigning new hashset to target field");
+					"Assigning new hashset to target field");
 				return;
 			}
 
@@ -984,14 +1106,18 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						Report(
 							spec,
 							"attempts to edit",
-							$"Value {spec.valueRaw} already exists in target set, ignoring addition command prompted by {Constants.Operator.Insert} keyword");
+							"Value {0} already exists in target set, ignoring addition command prompted by {1} keyword",
+							spec.valueRaw,
+							Constants.Operator.Insert);
 						return;
 					}
 					stringSet.Add(spec.valueRaw);
 					Report(
 						spec,
 						"edits",
-						$"Value {spec.valueRaw} is added to target set due to {Constants.Operator.Insert} keyword");
+						"Value {0} is added to target set due to {1} keyword",
+						spec.valueRaw,
+						Constants.Operator.Insert);
 					break;
 				case EditOperation.Remove:
 					if (!found)
@@ -999,14 +1125,18 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						Report(
 							spec,
 							"attempts to edit",
-							$"Value {spec.valueRaw} doesn't exist in target set, ignoring removal command prompted by {Constants.Operator.Remove} keyword");
+							"Value {0} doesn't exist in target set, ignoring removal command prompted by {1} keyword",
+							spec.valueRaw,
+							Constants.Operator.Remove);
 						return;
 					}
 					stringSet.Remove(spec.valueRaw);
 					Report(
 						spec,
 						"edits",
-						$"Value {spec.valueRaw} is removed from target set due to {Constants.Operator.Remove} keyword");
+						"Value {0} is removed from target set due to {1} keyword",
+						spec.valueRaw,
+						Constants.Operator.Remove);
 					break;
 			}
 		}
@@ -1028,7 +1158,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Enum field can't be overwritten - can't parse raw value | type: {targetType.GetNiceTypeName()} | value: {spec.valueRaw}");
+						"Enum field can't be overwritten -- can't parse raw value | type: {0} | value: {1}",
+						targetType.GetNiceTypeName(),
+						spec.valueRaw);
 					return;
 				}
 				v = values.GetValue(idx);
@@ -1038,7 +1170,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Report(
 				spec,
 				"edits",
-				$"Enum field modified with value {v}");
+				"Enum field modified with value {0}",
+				v);
 		}
 
 		private static object DefaultValue(Type elementType)
@@ -1054,34 +1187,53 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			return Activator.CreateInstance(elementType);
 		}
 
-		private static void Report(EditSpec spec, string verb, string msg)
+		private static void Report(EditSpec spec, string verb, string fmt, params object[] args)
 		{
 			if (ModLink.Settings.logging)
 			{
-				Debug.LogFormat(
-					"Mod {0} ({1}) {2} config {3} of type {4} | field: {5} | {6}",
+				var fixedFields = new object[]
+				{
 					spec.modIndex,
 					spec.modID,
 					verb,
 					spec.filename,
 					spec.dataTypeName,
 					spec.fieldPath,
-					msg);
+
+				};
+				fmt = reFormatFieldSpecifier.Replace(fmt, RenumberSpecifier);
+				Debug.LogFormat("Mod {0} ({1}) {2} config {3} of type {4}, field {5} | " + fmt, fixedFields.Concat(args).ToArray());
+			}
+
+			string RenumberSpecifier(Match m)
+			{
+				var i = int.Parse(m.Value.Substring(1, m.Value.Length - 2)) + 6;
+				return "{" + i + "}";
 			}
 		}
 
-		private static void ReportWarning(EditSpec spec, string verb, string msg)
+		private static void ReportWarning(EditSpec spec, string verb, string fmt, params object[] args)
 		{
-			Debug.LogWarningFormat(
-				"Mod {0} ({1}) {2} config {3} of type {4} | field: {5} | {6}",
+			var fixedFields = new object[]
+			{
 				spec.modIndex,
 				spec.modID,
 				verb,
 				spec.filename,
 				spec.dataTypeName,
 				spec.fieldPath,
-				msg);
+			};
+			fmt = reFormatFieldSpecifier.Replace(fmt, RenumberSpecifier);
+			Debug.LogWarningFormat("Mod {0} ({1}) {2} config {3} of type {4} | field: {5} | " + fmt, fixedFields.Concat(args).ToArray());
+
+			string RenumberSpecifier(Match m)
+			{
+				var i = int.Parse(m.Value.Substring(1, m.Value.Length - 2)) + 6;
+				return "{" + i + "}";
+			}
 		}
+
+		private static Regex reFormatFieldSpecifier = new Regex(@"\{\d+\}");
 
 		partial class EditSpec
 		{
