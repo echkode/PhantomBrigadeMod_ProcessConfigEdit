@@ -30,6 +30,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Remove,
 			DefaultValue,
 			NullValue,
+			SetContext,
 		}
 
 		internal sealed partial class EditSpec
@@ -74,6 +75,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				public const string Remove = "!-";
 				public const string DefaultValue = "!d";
 				public const string NullValue = "!n";
+				public const string SetContext = "!^";
 			}
 
 			public const char PathSeparator = '.';
@@ -138,6 +140,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				[Constants.Operator.Remove] = EditOperation.Remove,
 				[Constants.Operator.DefaultValue] = EditOperation.DefaultValue,
 				[Constants.Operator.NullValue] = EditOperation.NullValue,
+				[Constants.Operator.SetContext] = EditOperation.SetContext,
 			};
 
 			allowedHashSetOperations = new HashSet<EditOperation>()
@@ -241,6 +244,22 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			if (!WalkFieldPath(spec))
 			{
+				return;
+			}
+
+			if (spec.state.op == EditOperation.SetContext)
+			{
+				if (terminalTypes.Contains(spec.state.targetType))
+				{
+					ReportWarning(
+						spec,
+						"attempts to edit",
+						"Cannot set context -- type {0} is terminal",
+						spec.state.targetType);
+					return;
+				}
+
+				PushPathContext(spec);
 				return;
 			}
 
@@ -517,7 +536,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			var elementType = listType.IsArray
 				? listType.GetElementType()
 				: listType.GetGenericArguments()[0];
-			if (spec.state.atEndOfPath)
+			if (spec.state.atEndOfPath && spec.state.op != EditOperation.SetContext)
 			{
 				if (!EditList(spec, list, result, elementType))
 				{
@@ -707,7 +726,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 			var entryExists = map.Contains(resolvedKey);
 
-			if (spec.state.atEndOfPath)
+			if (spec.state.atEndOfPath && spec.state.op != EditOperation.SetContext)
 			{
 				if (!EditMap(
 					spec,
