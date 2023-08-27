@@ -767,6 +767,79 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			return true;
 		}
 
+		private static bool UsePathContext(EditSpec spec, int contextLevel)
+		{
+			if (contextLevel > spec.pathContexts.Count)
+			{
+				ReportWarning(
+					spec,
+					"attempts to edit",
+					"Can't proceed past {0} (fps idx: {1}) -- refers to more context levels ({2}) than are on stack ({3})",
+					spec.state.pathSegment,
+					spec.state.pathSegmentIndex,
+					contextLevel,
+					spec.pathContexts.Count);
+				return false;
+			}
+
+			while (contextLevel < spec.pathContexts.Count)
+			{
+				spec.pathContexts.RemoveAt(spec.pathContexts.Count - 1);
+			}
+
+			var pathContext = spec.pathContexts[contextLevel - 1];
+			spec.state.parent = pathContext.parent;
+			spec.state.target = pathContext.target;
+			spec.state.targetType = pathContext.targetType;
+			spec.state.targetIndex = pathContext.targetIndex;
+			spec.state.targetKey = pathContext.targetKey;
+			spec.state.fieldInfo = pathContext.fieldInfo;
+
+			return true;
+		}
+
+		private static void PushPathContext(EditSpec spec) => PushPathContext(spec, spec.state.target);
+		private static void PushPathContext(EditSpec spec, object target) =>
+			PushPathContext(spec, new PathContext()
+			{
+				parent = spec.state.parent,
+				target = target,
+				targetType = spec.state.targetType,
+				targetIndex = spec.state.targetIndex,
+				targetKey = spec.state.targetKey,
+				fieldInfo = spec.state.fieldInfo,
+			});
+		private static void PushPathContext(EditSpec spec, PathContext pathContext)
+		{
+			pathContext.fieldSegments = spec.fieldPath;
+			if (spec.fieldPath.StartsWith(Constants.ContextToken))
+			{
+				var pos = spec.fieldPath.IndexOf(Constants.PathSeparator);
+				if (pos == -1)
+				{
+					pathContext.fieldSegments = spec.pathContexts[spec.pathContexts.Count - 1].fieldSegments;
+					spec.pathContexts[spec.pathContexts.Count - 1] = pathContext;
+					return;
+				}
+
+				pathContext.fieldSegments = spec.fieldPath.Substring(pos);
+			}
+			spec.pathContexts.Add(pathContext);
+		}
+
+		private static void PopPathContext(EditSpec spec)
+		{
+			if (spec.pathContexts.Count == 0)
+			{
+				return;
+			}
+			if (spec.fieldPath.IndexOf(Constants.PathSeparator) != -1)
+			{
+				return;
+			}
+			spec.pathContexts.RemoveAt(spec.pathContexts.Count - 1);
+		}
+
 		private static (bool, Action<object>) ValidateEditState(EditSpec spec)
 		{
 			if (spec.state.parent == null)
