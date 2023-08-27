@@ -38,7 +38,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			if (resolvedFilename != lastFilename)
 			{
 				lastFilename = resolvedFilename;
+				lastFaulted = false;
 				pathContexts.Clear();
+			}
+			else if (lastFaulted)
+			{
+				return false;
 			}
 
 			var spec = new ModUtilities.EditSpec()
@@ -62,10 +67,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ModUtilities.ReplacePathContextInFieldPath(spec));
 			}
 			ModUtilities.ProcessFieldEdit(spec);
+			lastFaulted = spec.state.faulted;
 			return false;
 		}
 
 		private static string lastFilename;
+		private static bool lastFaulted;
 		private static List<ModUtilities.PathContext> pathContexts = new List<ModUtilities.PathContext>();
 	}
 }

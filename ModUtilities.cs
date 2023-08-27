@@ -222,7 +222,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		{
 			if (string.IsNullOrEmpty(spec.fieldPath) || string.IsNullOrEmpty(spec.valueRaw))
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"fails to edit",
 					"Missing field path ({0}) or raw value ({1})",
@@ -251,7 +251,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (terminalTypes.Contains(spec.state.targetType))
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Cannot set context -- type {0} is terminal",
@@ -273,7 +273,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (spec.state.targetType.IsValueType)
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Value type {0} cannot be set to null",
@@ -301,7 +301,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			if (spec.state.op == EditOperation.Overwrite)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Value type {0} has no string parsing implementation -- try using {1} keyword if you're after filling it with default instance",
@@ -312,7 +312,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			if (spec.state.op != EditOperation.DefaultValue)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Can't apply {0} operation at this point in the field path",
@@ -326,7 +326,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (!UtilitiesYAML.GetTagMappings().TryGetValue(valueRaw, out instanceType))
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"There is no type associated with tag {0}",
@@ -335,7 +335,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				}
 				if (!spec.state.targetType.IsAssignableFrom(instanceType))
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Tag type {0} is not compatible with field type {1} | tag: {2}",
@@ -382,7 +382,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			if (spec.state.fieldInfo == null)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"no target field info -- WalkFieldPath() failed to terminate properly | {0}",
@@ -429,7 +429,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 				if (spec.state.target == null)
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Can't proceed past {0} (I{1} S{2}/{3}) -- current target reference is null",
@@ -445,7 +445,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				{
 					if (!root)
 					{
-						ReportWarning(
+						ReportFault(
 							spec,
 							"attempts to edit",
 							"Can't proceed past {0} (I{1} S{2}/{3}) -- context token only recognized in root segment",
@@ -458,7 +458,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 					if (!spec.state.pathSegment.All(c => c == Constants.ContextTokenChar))
 					{
-						ReportWarning(
+						ReportFault(
 							spec,
 							"attempts to edit",
 							"Can't proceed past {0} (I{1} S{2}/{3}) -- unrecognized special token",
@@ -521,7 +521,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			var list = spec.state.target as IList;
 			if (!int.TryParse(spec.state.pathSegment, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) || result < 0)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Index {0} (I{1} S{2}/{3}) can't be parsed or is negative",
@@ -545,7 +545,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 			else if (result >= list.Count)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Can't proceed past {0} (I{1} S{2}/{3}) -- current target reference is beyond end of list (size={4})",
@@ -581,7 +581,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				var instance = DefaultValue(elementType);
 				if (instance == null && emptyValue)
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Default value for list insert is null (I{0} S{1}/{2}) -- likely missing a YAML tag",
@@ -637,7 +637,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (outOfBounds)
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Index {0} (I{1} S{2}/{3}) can't be removed as it's out of bounds for list size {4}",
@@ -674,7 +674,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			if (outOfBounds)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Index {0} (I{1} S{2}/{3}) can't be replaced as it's out of bounds for list size {4}",
@@ -699,7 +699,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			if (!allowedKeyTypes.Contains(keyType))
 			{
 				var permittedTypes = string.Join(", ", allowedKeyTypes.Select(t => t.GetNiceTypeName()));
-				Report(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Unable to produce map entry (I{0} S{1}/{2}) - only keys of types [{3}] are supported",
@@ -714,7 +714,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			var (keyOK, resolvedKey) = ResolveTargetKey(map.GetType(), key);
 			if (!keyOK)
 			{
-				Report(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Unable to produce map entry for key {0} (I{1} S{2}/{3}) -- key can't be coerced to the correct type",
@@ -740,7 +740,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 			else if (!entryExists)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Can't proceed past {0} (I{1} S{2}/{3}), current target reference doesn't exist in dictionary)",
@@ -776,7 +776,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					var instance = DefaultValue(valueType);
 					if (instance == null && emptyValue)
 					{
-						ReportWarning(
+						ReportFault(
 							spec,
 							"attempts to edit",
 							"Default value for insert with key {0} is null (I{1} S{2}/{3}) -- likely missing a YAML tag",
@@ -828,7 +828,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (!entryExists)
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Key {0} (I{1} S{2}/{3}) can't be removed from target dictionary -- it can't be found",
@@ -870,7 +870,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			var field = spec.state.targetType.GetField(spec.state.pathSegment);
 			if (field == null)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Field {0} (I{1} S{2}/{3}) could not be found on type {4}",
@@ -896,7 +896,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		{
 			if (contextLevel > spec.pathContexts.Count)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Can't proceed past {0} (I{1} S{2}/{3}) -- refers to more context levels ({4}) than are on stack ({5})",
@@ -1010,7 +1010,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		{
 			if (spec.state.parent == null)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Arrived at a null parent after walking field path (I{0} S{1}/{2})",
@@ -1026,7 +1026,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (spec.state.targetIndex == -1)
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Value is contained in a list but list index {0} is not valid",
@@ -1044,7 +1044,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (spec.state.targetKey == null)
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Value is contained in a dictionary but the key {0} is not valid",
@@ -1059,7 +1059,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			if (spec.state.fieldInfo == null)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Value can't be modified due to missing field info");
@@ -1142,7 +1142,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (!int.TryParse(spec.valueRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out v))
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Integer field can't be overwritten -- can't parse raw value {0}",
@@ -1166,7 +1166,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (!float.TryParse(spec.valueRaw, NumberStyles.Float, CultureInfo.InvariantCulture, out v))
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Float field can't be overwritten -- can't parse raw value {0}",
@@ -1220,7 +1220,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (!spec.valueRaw.StartsWith("(") || !spec.valueRaw.EndsWith(")"))
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Color field can't be overwritten - can't parse raw value {0} - missing parentheses",
@@ -1233,7 +1233,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				}
 				catch (ParserInputException ex)
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Can't parse raw value {0} -- {1}",
@@ -1287,7 +1287,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		{
 			if (!spec.valueRaw.StartsWith("(") || !spec.valueRaw.EndsWith(")"))
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Vector{0} field can't be overwritten -- can't parse raw value {1} - missing parentheses",
@@ -1300,7 +1300,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			var velems = valueRaw.Split(',');
 			if (velems.Length != vectorLength)
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"Vector{0} field can't be overwritten -- can't parse raw value {1} - invalid number of elements",
@@ -1314,7 +1314,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (!float.TryParse(velems[i], NumberStyles.Float, CultureInfo.InvariantCulture, out var result))
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Vector{0} field can't be overwritten -- can't parse raw value {1}",
@@ -1332,7 +1332,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		{
 			if (!allowedHashSetOperations.Contains(spec.state.op))
 			{
-				ReportWarning(
+				ReportFault(
 					spec,
 					"attempts to edit",
 					"No addition or removal keywords detected -- no other operations are supported on hashsets");
@@ -1343,7 +1343,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				if (spec.state.target != null)
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Hashset exists -- cannot replace with default value");
@@ -1421,7 +1421,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				var idx = Array.FindIndex(names, name => string.CompareOrdinal(name, spec.valueRaw) == 0);
 				if (idx == -1)
 				{
-					ReportWarning(
+					ReportFault(
 						spec,
 						"attempts to edit",
 						"Enum field can't be overwritten -- can't parse raw value | type: {0} | value: {1}",
@@ -1463,8 +1463,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Debug.LogFormat(fmt, args);
 		}
 
-		private static void ReportWarning(EditSpec spec, string verb, string fmt, params object[] args)
+		private static void ReportFault(EditSpec spec, string verb, string fmt, params object[] args)
 		{
+			spec.state.faulted = true;
 			(fmt, args) = PrepareReportArgs(spec, verb, fmt, args);
 			Debug.LogWarningFormat(fmt, args);
 		}
