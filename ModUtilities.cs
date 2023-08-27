@@ -258,7 +258,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						spec,
 						"attempts to edit",
 						"Value type {0} cannot be set to null",
-						spec.state.targetType.GetNiceTypeName());
+						spec.state.targetType);
 					return;
 				}
 
@@ -267,6 +267,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					spec,
 					"edits",
 					"Assigning null to target field");
+				if (IsFieldPathInContext(spec))
+				{
+					PopPathContext(spec);
+				}
 				return;
 			}
 
@@ -282,7 +286,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					spec,
 					"attempts to edit",
 					"Value type {0} has no string parsing implementation -- try using {1} keyword if you're after filling it with default instance",
-					spec.state.targetType.GetNiceTypeName(),
+					spec.state.targetType,
 					Constants.Operator.DefaultValue);
 				return;
 			}
@@ -316,8 +320,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						spec,
 						"attempts to edit",
 						"Tag type {0} is not compatible with field type {1} | tag: {2}",
-						instanceType.GetNiceTypeName(),
-						spec.state.targetType.GetNiceTypeName(),
+						instanceType,
+						spec.state.targetType,
 						valueRaw);
 					return;
 				}
@@ -327,11 +331,15 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				var list = (IList)spec.state.parent;
 				list[spec.state.targetIndex] = Activator.CreateInstance(instanceType);
+				if (!terminalTypes.Contains(spec.state.targetType))
+				{
+					PushPathContext(spec, list[spec.state.targetIndex]);
+				}
 				Report(
 					spec,
 					"edits",
 					"Assigning new default object of type {0} to target index {1}",
-					instanceType.GetNiceTypeName(),
+					instanceType,
 					spec.state.targetIndex);
 				return;
 			}
@@ -340,11 +348,15 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				var map = (IDictionary)spec.state.parent;
 				map[spec.state.targetKey] = Activator.CreateInstance(instanceType);
+				if (!terminalTypes.Contains(spec.state.targetType))
+				{
+					PushPathContext(spec, map[spec.state.targetKey]);
+				}
 				Report(
 					spec,
 					"edits",
 					"Assigning new default object of type {0} to target key {1}",
-					instanceType.GetNiceTypeName(),
+					instanceType,
 					spec.state.targetKey);
 				return;
 			}
@@ -361,11 +373,15 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			var instance = Activator.CreateInstance(instanceType);
 			spec.state.fieldInfo.SetValue(spec.state.parent, instance);
+			if (!terminalTypes.Contains(spec.state.targetType))
+			{
+				PushPathContext(spec, spec.state.fieldInfo.GetValue(spec.state.parent));
+			}
 			Report(
 				spec,
 				"edits",
 				"Assigning new default object of type {0} to target field",
-				instanceType.GetNiceTypeName());
+				instanceType);
 		}
 
 		private static (EditOperation, string) ParseOperation(string valueRaw)
@@ -401,7 +417,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						spec.state.pathSegment,
 						spec.state.pathSegmentIndex,
 						spec.state.pathSegmentIndex + 1,
-						spec.state.pathSegmentCount);
+						fieldSegmentCountFormatter);
 					return false;
 				}
 
@@ -417,7 +433,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 							spec.state.pathSegment,
 							spec.state.pathSegmentIndex,
 							spec.state.pathSegmentIndex + 1,
-							spec.state.pathSegmentCount);
+							fieldSegmentCountFormatter);
 						return false;
 					}
 
@@ -430,7 +446,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 							spec.state.pathSegment,
 							spec.state.pathSegmentIndex,
 							spec.state.pathSegmentIndex + 1,
-							spec.state.pathSegmentCount);
+							fieldSegmentCountFormatter);
 						return false;
 					}
 
@@ -449,7 +465,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					Report(
 						spec,
 						"clears context in",
-						"No context in root segment {0}",
+						"No context in root | segment: {0}",
 						spec.state.pathSegment);
 					spec.pathContexts.Clear();
 				}
@@ -493,7 +509,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					spec.state.pathSegment,
 					spec.state.pathSegmentIndex,
 					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount);
+					fieldSegmentCountFormatter);
 				return false;
 			}
 
@@ -517,7 +533,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					spec.state.pathSegment,
 					spec.state.pathSegmentIndex,
 					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount,
+					fieldSegmentCountFormatter,
 					list.Count);
 				return false;
 			}
@@ -552,7 +568,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						"Default value for list insert is null (I{0} S{1}/{2}) -- likely missing a YAML tag",
 						spec.state.pathSegmentIndex,
 						spec.state.pathSegmentIndex + 1,
-						spec.state.pathSegmentCount);
+						fieldSegmentCountFormatter);
 					return false;
 				}
 
@@ -562,11 +578,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					Report(
 						spec,
 						"edits",
-						"Adding new entry of type {0} to end of the list (I{1} S{2}/{3})",
-						elementType.GetNiceTypeName(),
-						spec.state.pathSegmentIndex,
-						spec.state.pathSegmentIndex + 1,
-						spec.state.pathSegmentCount);
+						"Adding new entry of type {0} to end of the list",
+						elementType);
 				}
 				else
 				{
@@ -574,12 +587,22 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					Report(
 						spec,
 						"edits",
-						"Inserting new entry of type {0} to index {1} of the list (I{2} S{3}/{4})",
-						elementType.GetNiceTypeName(),
-						index,
-						spec.state.pathSegmentIndex,
-						spec.state.pathSegmentIndex + 1,
-						spec.state.pathSegmentCount);
+						"Inserting new entry of type {0} to index {1} of the list",
+						elementType,
+						index);
+				}
+
+				if (emptyValue && !terminalTypes.Contains(elementType))
+				{
+					// An empty value will end this edit step so we have to push context here.
+					var newIndex = outOfBounds ? list.Count - 1 : index;
+					PushPathContext(spec, new PathContext()
+					{
+						parent = spec.state.target,
+						target = list[newIndex],
+						targetType = elementType,
+						targetIndex = newIndex,
+					});
 				}
 
 				var isTag = !emptyValue && elementType != typeString && spec.valueRaw.StartsWith("!");
@@ -602,7 +625,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						spec.state.pathSegment,
 						spec.state.pathSegmentIndex,
 						spec.state.pathSegmentIndex + 1,
-						spec.state.pathSegmentCount,
+						fieldSegmentCountFormatter,
 						list.Count);
 					return false;
 				}
@@ -611,11 +634,22 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"edits",
-					"Removing entry at index {0} of the list (I{1} S{2}/{3})",
-					index,
-					spec.state.pathSegmentIndex,
-					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount);
+					"Removing entry at index {0} of the list",
+					index);
+
+				var contextSegments = "";
+				if (IsFieldPathInContext(spec))
+				{
+					contextSegments = spec.pathContexts.Last().fieldSegments;
+					PopPathContext(spec);
+				}
+
+				TrimFieldPath(spec, contextSegments);
+				if (!IsFieldPathInContext(spec))
+				{
+					PushPathContext(spec);
+				}
+
 				return false;
 			}
 
@@ -628,7 +662,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					spec.state.pathSegment,
 					spec.state.pathSegmentIndex,
 					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount,
+					fieldSegmentCountFormatter,
 					list.Count);
 				return false;
 			}
@@ -652,7 +686,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					"Unable to produce map entry (I{0} S{1}/{2}) - only keys of types [{3}] are supported",
 					spec.state.pathSegmentIndex,
 					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount,
+					fieldSegmentCountFormatter,
 					permittedTypes);
 				return false;
 			}
@@ -668,7 +702,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					key,
 					spec.state.pathSegmentIndex,
 					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount);
+					fieldSegmentCountFormatter);
 				return false;
 			}
 			var entryExists = map.Contains(resolvedKey);
@@ -694,7 +728,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					spec.state.pathSegment,
 					spec.state.pathSegmentIndex,
 					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount);
+					fieldSegmentCountFormatter);
 				return false;
 			}
 
@@ -730,18 +764,15 @@ namespace EchKode.PBMods.ProcessConfigEdit
 							key,
 							spec.state.pathSegmentIndex,
 							spec.state.pathSegmentIndex + 1,
-							spec.state.pathSegmentCount);
+							fieldSegmentCountFormatter);
 						return false;
 					}
 					map.Add(key, instance);
 					Report(
 						spec,
 						"edits",
-						"Adding key {0} (I{1} S{2}/{3}) to target dictionary",
-						key,
-						spec.state.pathSegmentIndex,
-						spec.state.pathSegmentIndex + 1,
-						spec.state.pathSegmentCount);
+						"Adding key {0} to target dictionary",
+						key);
 				}
 				else
 				{
@@ -750,6 +781,19 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						"attempts to edit",
 						"Key {0} already exists, ignoring the command to add it",
 						key);
+				}
+
+				if (emptyValue && !terminalTypes.Contains(valueType))
+				{
+					// An empty value will end this edit step so we have to push context here.
+					PushPathContext(spec, new PathContext()
+					{
+						parent = spec.state.parent,
+						target = map[key],
+						targetType = valueType,
+						targetIndex = -1,
+						targetKey = key,
+					});
 				}
 
 				var isTag = !emptyValue && valueType != typeString && spec.valueRaw.StartsWith("!");
@@ -772,19 +816,30 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						key,
 						spec.state.pathSegmentIndex,
 						spec.state.pathSegmentIndex + 1,
-						spec.state.pathSegmentCount);
+						fieldSegmentCountFormatter);
 					return false;
 				}
 
 				Report(
 					spec,
 					"edits",
-					"Removing key {0} (I{1} S{2}/{3}) from target dictionary",
-					key,
-					spec.state.pathSegmentIndex,
-					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount);
+					"Removing key {0} from target dictionary",
+					key);
 				map.Remove(key);
+
+				var contextSegments = "";
+				if (IsFieldPathInContext(spec))
+				{
+					contextSegments = spec.pathContexts.Last().fieldSegments;
+					PopPathContext(spec);
+				}
+
+				TrimFieldPath(spec, contextSegments);
+				if (!IsFieldPathInContext(spec))
+				{
+					PushPathContext(spec);
+				}
+
 				return false;
 			}
 
@@ -803,8 +858,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					spec.state.pathSegment,
 					spec.state.pathSegmentIndex,
 					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount,
-					spec.state.targetType.GetNiceTypeName());
+					fieldSegmentCountFormatter,
+					spec.state.targetType);
 				return false;
 			}
 
@@ -840,11 +895,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"levels down context in",
-					"Removed context {0} (I{1} S{2}/{3}) | context level: {4}",
-					ReplacePathContextInFieldPath(spec),
-					spec.state.pathSegmentIndex,
-					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount,
+					"Removed context: {0} | context level: {1}",
+					contextFieldPathFormatter,
 					spec.pathContexts.Count);
 				spec.pathContexts.RemoveAt(spec.pathContexts.Count - 1);
 			}
@@ -856,6 +908,15 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			spec.state.targetIndex = pathContext.targetIndex;
 			spec.state.targetKey = pathContext.targetKey;
 			spec.state.fieldInfo = pathContext.fieldInfo;
+
+			Report(
+				spec,
+				"using context in",
+				"Context: {0} | context level: {1} | target type: {2} | target: {3}",
+				contextFieldPathFormatter,
+				spec.pathContexts.Count,
+				spec.state.targetType?.GetNiceTypeName() ?? "<unknown>",
+				spec.state.target == null ? "<null>" : "<value>");
 
 			return true;
 		}
@@ -879,14 +940,36 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				var pos = spec.fieldPath.IndexOf(Constants.PathSeparator);
 				if (pos == -1)
 				{
-					pathContext.fieldSegments = spec.pathContexts[spec.pathContexts.Count - 1].fieldSegments;
+					pathContext.fieldSegments = spec.pathContexts.Last().fieldSegments;
 					spec.pathContexts[spec.pathContexts.Count - 1] = pathContext;
+					Report(
+						spec,
+						"changes context values in",
+						"Context: {0} | context level: {1}",
+						contextFieldPathFormatter,
+						spec.pathContexts.Count);
 					return;
 				}
 
 				pathContext.fieldSegments = spec.fieldPath.Substring(pos);
 			}
 			spec.pathContexts.Add(pathContext);
+			Report(
+				spec,
+				"assigns context in",
+				"Added context: {0} | context level: {1}",
+				contextFieldPathFormatter,
+				spec.pathContexts.Count);
+		}
+
+		private static void TryPushPathContext(EditSpec spec)
+		{
+			TrimFieldPath(spec);
+			if (IsFieldPathInContext(spec))
+			{
+				return;
+			}
+			PushPathContext(spec);
 		}
 
 		private static void PopPathContext(EditSpec spec)
@@ -895,10 +978,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				return;
 			}
-			if (spec.fieldPath.IndexOf(Constants.PathSeparator) != -1)
-			{
-				return;
-			}
+			Report(
+				spec,
+				"removes context in",
+				"Removed context: {0} | context level: {1}",
+				contextFieldPathFormatter,
+				spec.pathContexts.Count);
 			spec.pathContexts.RemoveAt(spec.pathContexts.Count - 1);
 		}
 
@@ -912,7 +997,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					"Arrived at a null parent after walking field path (I{0} S{1}/{2})",
 					spec.state.pathSegmentIndex,
 					spec.state.pathSegmentIndex + 1,
-					spec.state.pathSegmentCount);
+					fieldSegmentCountFormatter);
 				return (false, null);
 			}
 
@@ -1140,6 +1225,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 
 			update(v);
+			PushPathContext(spec, v);
 			Report(
 				spec,
 				"edits",
@@ -1166,6 +1252,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 
 			update(v);
+			PushPathContext(spec, v);
 			Report(
 				spec,
 				"edits",
@@ -1245,6 +1332,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				}
 
 				spec.state.fieldInfo.SetValue(spec.state.parent, new HashSet<string>());
+				PushPathContext(spec, spec.state.fieldInfo.GetValue(spec.state.parent));
 				Report(
 					spec,
 					"edits",
@@ -1275,6 +1363,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						"Value {0} is added to target set due to {1} keyword",
 						spec.valueRaw,
 						Constants.Operator.Insert);
+					TryPushPathContext(spec);
 					break;
 				case EditOperation.Remove:
 					if (!found)
@@ -1294,6 +1383,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						"Value {0} is removed from target set due to {1} keyword",
 						spec.valueRaw,
 						Constants.Operator.Remove);
+					TryPushPathContext(spec);
 					break;
 			}
 		}
@@ -1316,7 +1406,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						spec,
 						"attempts to edit",
 						"Enum field can't be overwritten -- can't parse raw value | type: {0} | value: {1}",
-						targetType.GetNiceTypeName(),
+						targetType,
 						spec.valueRaw);
 					return;
 				}
@@ -1350,27 +1440,17 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				return;
 			}
-
-			var fixedFields = new object[]
-			{
-				spec.modIndex,
-				spec.modID,
-				verb,
-				spec.filename,
-				spec.dataTypeName,
-				ReplacePathContextInFieldPath(spec)
-			};
-			fmt = reFormatFieldSpecifier.Replace(fmt, RenumberSpecifier);
-			Debug.LogFormat("Mod {0} ({1}) {2} config {3} of type {4}, field {5} | " + fmt, fixedFields.Concat(args).ToArray());
-
-			string RenumberSpecifier(Match m)
-			{
-				var i = int.Parse(m.Value.Substring(1, m.Value.Length - 2)) + 6;
-				return "{" + i + "}";
-			}
+			(fmt, args) = PrepareReportArgs(spec, verb, fmt, args);
+			Debug.LogFormat(fmt, args);
 		}
 
 		private static void ReportWarning(EditSpec spec, string verb, string fmt, params object[] args)
+		{
+			(fmt, args) = PrepareReportArgs(spec, verb, fmt, args);
+			Debug.LogWarningFormat(fmt, args);
+		}
+
+		private static (string Format, object[] Args) PrepareReportArgs(EditSpec spec, string verb, string fmt, params object[] args)
 		{
 			var fixedFields = new object[]
 			{
@@ -1382,7 +1462,20 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReplacePathContextInFieldPath(spec)
 			};
 			fmt = reFormatFieldSpecifier.Replace(fmt, RenumberSpecifier);
-			Debug.LogWarningFormat("Mod {0} ({1}) {2} config {3} of type {4} | field: {5} | " + fmt, fixedFields.Concat(args).ToArray());
+			for (var i = 0; i < args.Length; i += 1)
+			{
+				if (args[i] is Type tt)
+				{
+					args[i] = tt.GetNiceTypeName();
+				}
+				else if (typeof(SpecFormatter).IsAssignableFrom(args[i].GetType()))
+				{
+					var f = (SpecFormatter)args[i];
+					args[i] = f(spec);
+				}
+			}
+
+			return ("Mod {0} ({1}) {2} config {3} of type {4} | field: {5} | " + fmt, fixedFields.Concat(args).ToArray());
 
 			string RenumberSpecifier(Match m)
 			{
@@ -1426,6 +1519,13 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			return string.Join("", segments) + remainder;
 		}
 
+		private static string BuildContextFieldPath(EditSpec spec) =>
+			string.Join("", spec.pathContexts.Select(pc => pc.fieldSegments));
+
+		private delegate string SpecFormatter(EditSpec spec);
+		private static readonly SpecFormatter contextFieldPathFormatter = s => BuildContextFieldPath(s);
+		private static readonly SpecFormatter fieldSegmentCountFormatter = s => CountFieldPathSegments(s).ToString();
+
 		private static int CountContextFieldPathSegments(EditSpec spec)
 		{
 			var segmentCount = 0;
@@ -1439,6 +1539,58 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				}
 			}
 			return segmentCount;
+		}
+
+		private static int CountFieldPathSegments(EditSpec spec) =>
+			spec.state.pathSegmentCount
+			+ (spec.fieldPath.StartsWith(Constants.ContextToken)
+				? CountContextFieldPathSegments(spec) - 1
+				: 0);
+
+		private static void TrimFieldPath(EditSpec spec, string contextSegments = "")
+		{
+			var pos = spec.fieldPath.LastIndexOf(Constants.PathSeparator);
+			if (pos != -1)
+			{
+				spec.fieldPath = spec.fieldPath.Substring(0, pos);
+				spec.state.pathSegmentIndex -= 1;
+				spec.state.pathSegmentCount -= 1;
+				return;
+			}
+
+			if (string.IsNullOrEmpty(contextSegments))
+			{
+				return;
+			}
+			if (spec.fieldPath.Length == 1)
+			{
+				// This is a programming error
+				return;
+			}
+
+			spec.fieldPath = spec.fieldPath.Substring(0, spec.fieldPath.Length - 1);
+			for (pos = contextSegments.IndexOf(Constants.PathSeparator);
+				pos != -1;
+				pos = contextSegments.IndexOf(Constants.PathSeparator, pos + 1))
+			{
+				spec.state.pathSegmentIndex -= 1;
+				spec.state.pathSegmentCount -= 1;
+			}
+		}
+
+		private static bool IsFieldPathInContext(EditSpec spec)
+		{
+			if (spec.pathContexts.Count == 0)
+			{
+				return false;
+			}
+
+			var pos = spec.fieldPath.IndexOf(Constants.PathSeparator);
+			if (pos != -1)
+			{
+				return false;
+			}
+			return spec.fieldPath.StartsWith(Constants.ContextToken);
 		}
 
 		partial class EditSpec
