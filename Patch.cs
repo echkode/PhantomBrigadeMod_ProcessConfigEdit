@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2023 EchKode
 // SPDX-License-Identifier: BSD-3-Clause
 
+using System.Collections.Generic;
+
 using HarmonyLib;
 
 using PBModUtilities = PhantomBrigade.Mods.ModUtilities;
@@ -32,15 +34,23 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			string modID,
 			string dataTypeName)
 		{
+			var resolvedFilename = ModUtilities.FindConfigKeyIfEmpty(target, dataTypeName, filename);
+			if (resolvedFilename != lastFilename)
+			{
+				lastFilename = resolvedFilename;
+				pathContexts.Clear();
+			}
+
 			var spec = new ModUtilities.EditSpec()
 			{
 				modIndex = i,
 				modID = modID,
-				filename = ModUtilities.FindConfigKeyIfEmpty(target, dataTypeName, filename),
+				filename = resolvedFilename,
 				dataTypeName = dataTypeName,
 				root = target,
 				fieldPath = fieldPath,
 				valueRaw = valueRaw,
+				pathContexts = pathContexts,
 			};
 			if (ModLink.Settings.logging)
 			{
@@ -49,10 +59,13 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					spec.modIndex,
 					spec.modID,
 					spec.filename,
-					spec.fieldPath);
+					ModUtilities.ReplacePathContextInFieldPath(spec));
 			}
 			ModUtilities.ProcessFieldEdit(spec);
 			return false;
 		}
+
+		private static string lastFilename;
+		private static List<ModUtilities.PathContext> pathContexts = new List<ModUtilities.PathContext>();
 	}
 }

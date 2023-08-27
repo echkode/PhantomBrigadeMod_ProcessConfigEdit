@@ -383,7 +383,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 		private static bool WalkFieldPath(EditSpec spec)
 		{
-			var pathSegments = spec.fieldPath.Split('.');
+			var pathSegments = spec.fieldPath.Split(Constants.PathSeparator);
 			spec.state.pathSegmentCount = pathSegments.Length;
 
 			for (var i = 0; i < pathSegments.Length; i += 1)
@@ -405,8 +405,59 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					return false;
 				}
 
+				var root = i == 0;
+				if (spec.state.pathSegment.StartsWith(Constants.ContextToken))
+				{
+					if (!root)
+					{
+						ReportWarning(
+							spec,
+							"attempts to edit",
+							"Can't proceed past {0} (I{1} S{2}/{3}) -- context token only recognized in root segment",
+							spec.state.pathSegment,
+							spec.state.pathSegmentIndex,
+							spec.state.pathSegmentIndex + 1,
+							spec.state.pathSegmentCount);
+						return false;
+					}
+
+					if (!spec.state.pathSegment.All(c => c == Constants.ContextTokenChar))
+					{
+						ReportWarning(
+							spec,
+							"attempts to edit",
+							"Can't proceed past {0} (I{1} S{2}/{3}) -- unrecognized special token",
+							spec.state.pathSegment,
+							spec.state.pathSegmentIndex,
+							spec.state.pathSegmentIndex + 1,
+							spec.state.pathSegmentCount);
+						return false;
+					}
+
+					var contextLevel = spec.state.pathSegment.Length;
+					if (!UsePathContext(spec, contextLevel))
+					{
+						return false;
+					}
+
+					spec.state.pathSegmentIndex += CountContextFieldPathSegments(spec);
+					continue;
+				}
+
+				if (root && spec.pathContexts.Count != 0)
+				{
+					Report(
+						spec,
+						"clears context in",
+						"No context in root segment {0}",
+						spec.state.pathSegment);
+					spec.pathContexts.Clear();
+				}
+
+				spec.state.pathSegmentIndex += CountContextFieldPathSegments(spec);
 				spec.state.targetType = spec.state.target.GetType();
-				var child = i > 0;
+
+				var child = spec.state.pathSegmentIndex != 0;
 				if (child && typeIList.IsAssignableFrom(spec.state.targetType))
 				{
 					if (!ProduceListElement(spec))
@@ -774,9 +825,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					"Can't proceed past {0} (fps idx: {1}) -- refers to more context levels ({2}) than are on stack ({3})",
+					"Can't proceed past {0} (I{1} S{2}/{3}) -- refers to more context levels ({4}) than are on stack ({5})",
 					spec.state.pathSegment,
 					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount,
 					contextLevel,
 					spec.pathContexts.Count);
 				return false;
@@ -784,6 +837,15 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			while (contextLevel < spec.pathContexts.Count)
 			{
+				Report(
+					spec,
+					"levels down context in",
+					"Removed context {0} (I{1} S{2}/{3}) | context level: {4}",
+					ReplacePathContextInFieldPath(spec),
+					spec.state.pathSegmentIndex,
+					spec.state.pathSegmentIndex + 1,
+					spec.state.pathSegmentCount,
+					spec.pathContexts.Count);
 				spec.pathContexts.RemoveAt(spec.pathContexts.Count - 1);
 			}
 
@@ -1284,21 +1346,22 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 		private static void Report(EditSpec spec, string verb, string fmt, params object[] args)
 		{
-			if (ModLink.Settings.logging)
+			if (!ModLink.Settings.logging)
 			{
-				var fixedFields = new object[]
-				{
-					spec.modIndex,
-					spec.modID,
-					verb,
-					spec.filename,
-					spec.dataTypeName,
-					spec.fieldPath,
-
-				};
-				fmt = reFormatFieldSpecifier.Replace(fmt, RenumberSpecifier);
-				Debug.LogFormat("Mod {0} ({1}) {2} config {3} of type {4}, field {5} | " + fmt, fixedFields.Concat(args).ToArray());
+				return;
 			}
+
+			var fixedFields = new object[]
+			{
+				spec.modIndex,
+				spec.modID,
+				verb,
+				spec.filename,
+				spec.dataTypeName,
+				ReplacePathContextInFieldPath(spec)
+			};
+			fmt = reFormatFieldSpecifier.Replace(fmt, RenumberSpecifier);
+			Debug.LogFormat("Mod {0} ({1}) {2} config {3} of type {4}, field {5} | " + fmt, fixedFields.Concat(args).ToArray());
 
 			string RenumberSpecifier(Match m)
 			{
@@ -1316,7 +1379,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				verb,
 				spec.filename,
 				spec.dataTypeName,
-				spec.fieldPath,
+				ReplacePathContextInFieldPath(spec)
 			};
 			fmt = reFormatFieldSpecifier.Replace(fmt, RenumberSpecifier);
 			Debug.LogWarningFormat("Mod {0} ({1}) {2} config {3} of type {4} | field: {5} | " + fmt, fixedFields.Concat(args).ToArray());
@@ -1329,6 +1392,54 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		}
 
 		private static readonly Regex reFormatFieldSpecifier = new Regex(@"\{\d+\}");
+
+		internal static string ReplacePathContextInFieldPath(EditSpec spec)
+		{
+			if (spec.fieldPath.Length == 0)
+			{
+				return spec.fieldPath;
+			}
+			if (!spec.fieldPath.StartsWith(Constants.ContextToken))
+			{
+				return spec.fieldPath;
+			}
+			if (spec.pathContexts.Count == 0)
+			{
+				return spec.fieldPath;
+			}
+
+			var pos = spec.fieldPath.IndexOf(Constants.PathSeparator);
+			var contextSegment = pos == -1 ? spec.fieldPath : spec.fieldPath.Substring(0, pos);
+			if (!contextSegment.All(c => c == Constants.ContextTokenChar))
+			{
+				return spec.fieldPath;
+			}
+
+			var contextCount = contextSegment.Length;
+			var remainder = pos == -1 ? "" : spec.fieldPath.Substring(pos);
+			var k = Math.Min(contextCount, spec.pathContexts.Count);
+			var segments = spec.pathContexts.Take(k).Select(pc => pc.fieldSegments);
+			if (contextCount > spec.pathContexts.Count)
+			{
+				segments = segments.Concat(Enumerable.Repeat(".?", contextCount - spec.pathContexts.Count));
+			}
+			return string.Join("", segments) + remainder;
+		}
+
+		private static int CountContextFieldPathSegments(EditSpec spec)
+		{
+			var segmentCount = 0;
+			foreach (var pc in spec.pathContexts)
+			{
+				for (var pos = pc.fieldSegments.IndexOf(Constants.PathSeparator);
+					pos != -1;
+					pos = pc.fieldSegments.IndexOf(Constants.PathSeparator, pos + 1))
+				{
+					segmentCount += 1;
+				}
+			}
+			return segmentCount;
+		}
 
 		partial class EditSpec
 		{
@@ -1360,4 +1471,3 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		}
 	}
 }
-
