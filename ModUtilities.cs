@@ -256,7 +256,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			var instanceType = spec.state.targetType;
 			var isTag = valueRaw.StartsWith("!");
-			if (isTag && spec.state.targetType.IsInterface)
+			if (isTag)
 			{
 				if (!tagTypeMap.TryGetValue(valueRaw, out instanceType))
 				{
@@ -264,6 +264,14 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						spec,
 						"attempts to edit",
 						$"There is no type associated with tag {valueRaw}");
+					return;
+				}
+				if (!spec.state.targetType.IsAssignableFrom(instanceType))
+				{
+					ReportWarning(
+						spec,
+						"attempts to edit",
+						$"Tag type {instanceType.Name} is not compatible with field type {spec.state.targetType.Name} | tag: {valueRaw}");
 					return;
 				}
 			}
