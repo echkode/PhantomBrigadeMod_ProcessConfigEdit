@@ -81,6 +81,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			public const char PathSeparator = '.';
 			public const char ContextTokenChar = '^';
 			public const string ContextToken = "^";
+			public const string IndexGlobToken = "*";
 		}
 
 		private static Type typeString;
@@ -519,7 +520,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		private static bool ProduceListElement(EditSpec spec)
 		{
 			var list = spec.state.target as IList;
-			if (!int.TryParse(spec.state.pathSegment, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) || result < 0)
+			var result = -1;
+			if (spec.state.atEndOfPath && spec.state.pathSegment == Constants.IndexGlobToken)
+			{
+				result = list.Count;
+			}
+			else if (!int.TryParse(spec.state.pathSegment, NumberStyles.Integer, CultureInfo.InvariantCulture, out result) || result < 0)
 			{
 				ReportFault(
 					spec,
@@ -599,6 +605,16 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						"edits",
 						"Adding new entry of type {0} to end of the list",
 						elementType);
+					if (spec.state.pathSegment == Constants.IndexGlobToken)
+					{
+						Report(
+							spec,
+							"resolves index in",
+							"List index is now {0}",
+							index);
+						spec.state.pathSegment = index.ToString();
+						spec.fieldPath = spec.fieldPath.Replace(Constants.IndexGlobToken, spec.state.pathSegment);
+					}
 				}
 				else
 				{
