@@ -397,7 +397,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				return false;
 			}
 
-			var elementType = list.GetType().GetGenericArguments()[0];
+			var listType = list.GetType();
+			var elementType = listType.IsArray
+				? listType.GetElementType()
+				: listType.GetGenericArguments()[0];
 			if (spec.state.atEndOfPath)
 			{
 				if (!EditList(spec, list, result, elementType))
