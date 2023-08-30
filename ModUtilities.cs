@@ -437,7 +437,17 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			if (spec.state.op == EditOperation.Insert)
 			{
+				var emptyValue = string.IsNullOrWhiteSpace(spec.valueRaw);
 				var instance = DefaultValue(elementType);
+				if (instance == null && emptyValue)
+				{
+					ReportWarning(
+						spec,
+						"attempts to edit",
+						$"Default value for list insert is null (step: {spec.state.pathSegmentIndex}) -- likely missing a YAML tag");
+					return false;
+				}
+
 				if (outOfBounds)
 				{
 					list.Add(instance);
@@ -455,14 +465,13 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						$"Inserting new entry of type {elementType.Name} to index {index} of the list (step {spec.state.pathSegmentIndex})");
 				}
 
-				var nonEmptyValue = !string.IsNullOrWhiteSpace(spec.valueRaw);
-				var isTag = nonEmptyValue && elementType != typeString && spec.valueRaw.StartsWith("!");
+				var isTag = !emptyValue && elementType != typeString && spec.valueRaw.StartsWith("!");
 				if (isTag)
 				{
 					spec.state.op = EditOperation.DefaultValue;
 				}
 
-				return nonEmptyValue;
+				return !emptyValue;
 			}
 
 			if (spec.state.op == EditOperation.Remove)
@@ -565,9 +574,18 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		{
 			if (spec.state.op == EditOperation.Insert)
 			{
+				var emptyValue = string.IsNullOrWhiteSpace(spec.valueRaw);
 				if (!entryExists)
 				{
-					object instance = DefaultValue(valueType);
+					var instance = DefaultValue(valueType);
+					if (instance == null && emptyValue)
+					{
+						ReportWarning(
+							spec,
+							"attempts to edit",
+							$"Default value for insert with key {key} is null (step: {spec.state.pathSegmentIndex}) -- likely missing a YAML tag");
+						return false;
+					}
 					map.Add(key, instance);
 					Report(
 						spec,
@@ -582,14 +600,13 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						$"Key {key} already exists, ignoring the command to add it");
 				}
 
-				var nonEmptyValue = !string.IsNullOrWhiteSpace(spec.valueRaw);
-				var isTag = nonEmptyValue && valueType != typeString && spec.valueRaw.StartsWith("!");
+				var isTag = !emptyValue && valueType != typeString && spec.valueRaw.StartsWith("!");
 				if (isTag)
 				{
 					spec.state.op = EditOperation.DefaultValue;
 				}
 
-				return nonEmptyValue;
+				return !emptyValue;
 			}
 
 			if (spec.state.op == EditOperation.Remove)
