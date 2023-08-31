@@ -231,7 +231,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Value type {spec.state.targetType.Name} cannot be set to null");
+						$"Value type {spec.state.targetType.GetNiceTypeName()} cannot be set to null");
 					return;
 				}
 
@@ -254,7 +254,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Value type {spec.state.targetType.Name} has no string parsing implementation - try using {Constants.Operator.DefaultValue} keyword if you're after filling it with default instance");
+					$"Value type {spec.state.targetType.GetNiceTypeName()} has no string parsing implementation - try using {Constants.Operator.DefaultValue} keyword if you're after filling it with default instance");
 				return;
 			}
 
@@ -275,7 +275,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Tag type {instanceType.Name} is not compatible with field type {spec.state.targetType.Name} | tag: {valueRaw}");
+						$"Tag type {instanceType.GetNiceTypeName()} is not compatible with field type {spec.state.targetType.GetNiceTypeName()} | tag: {valueRaw}");
 					return;
 				}
 			}
@@ -287,7 +287,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"edits",
-					$"Assigning new default object of type {instanceType.Name} to target index {spec.state.targetIndex}");
+					$"Assigning new default object of type {instanceType.GetNiceTypeName()} to target index {spec.state.targetIndex}");
 				return;
 			}
 
@@ -298,14 +298,14 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"edits",
-					$"Assigning new default object of type {instanceType.Name} to target key {spec.state.targetKey}");
+					$"Assigning new default object of type {instanceType.GetNiceTypeName()} to target key {spec.state.targetKey}");
 				return;
 			}
 
 			if (spec.state.fieldInfo == null)
 			{
-				var parentType = spec.state.parent?.GetType().Name ?? "null";
-				var targetType = spec.state.target?.GetType().Name ?? "null";
+				var parentType = spec.state.parent?.GetType().GetNiceTypeName() ?? "null";
+				var targetType = spec.state.target?.GetType().GetNiceTypeName() ?? "null";
 				ReportWarning(
 					spec,
 					"attempts to edit",
@@ -328,7 +328,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			Report(
 				spec,
 				"edits",
-				$"Assigning new default object of type {instanceType.Name} to target field");
+				$"Assigning new default object of type {instanceType.GetNiceTypeName()} to target field");
 		}
 
 		private static (EditOperation, string) ParseOperation(string valueRaw)
@@ -458,7 +458,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					Report(
 						spec,
 						"edits",
-						$"Adding new entry of type {elementType.Name} to end of the list (step {spec.state.pathSegmentIndex})");
+						$"Adding new entry of type {elementType.GetNiceTypeName()} to end of the list (step {spec.state.pathSegmentIndex})");
 				}
 				else
 				{
@@ -466,7 +466,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					Report(
 						spec,
 						"edits",
-						$"Inserting new entry of type {elementType.Name} to index {index} of the list (step {spec.state.pathSegmentIndex})");
+						$"Inserting new entry of type {elementType.GetNiceTypeName()} to index {index} of the list (step {spec.state.pathSegmentIndex})");
 				}
 
 				var isTag = !emptyValue && elementType != typeString && spec.valueRaw.StartsWith("!");
@@ -518,7 +518,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			if (!allowedKeyTypes.Contains(keyType))
 			{
-				var permittedTypes = string.Join(", ", allowedKeyTypes.Select(t => t.Name));
+				var permittedTypes = string.Join(", ", allowedKeyTypes.Select(t => t.GetNiceTypeName()));
 				Report(
 					spec,
 					"attempts to edit",
@@ -1030,7 +1030,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Enum field can't be overwritten - can't parse raw value | type: {targetType.Name} | value: {spec.valueRaw}");
+						$"Enum field can't be overwritten - can't parse raw value | type: {targetType.GetNiceTypeName()} | value: {spec.valueRaw}");
 					return;
 				}
 				v = values.GetValue(idx);
