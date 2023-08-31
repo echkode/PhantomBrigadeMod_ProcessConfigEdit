@@ -349,7 +349,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Can't proceed past {spec.state.pathSegment} (step {spec.state.pathSegmentIndex}), current target reference is null");
+						$"Can't proceed past {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}), current target reference is null");
 					return false;
 				}
 
@@ -386,7 +386,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Index {spec.state.pathSegment} (step {spec.state.pathSegmentIndex}) can't be parsed or is negative");
+					$"Index {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) can't be parsed or is negative");
 				return false;
 			}
 
@@ -406,7 +406,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Can't proceed past {spec.state.pathSegment} (step {spec.state.pathSegmentIndex}), current target reference is beyond end of list (size={list.Count})");
+					$"Can't proceed past {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}), current target reference is beyond end of list (size={list.Count})");
 				return false;
 			}
 
@@ -437,7 +437,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Default value for list insert is null (step: {spec.state.pathSegmentIndex}) -- likely missing a YAML tag");
+						$"Default value for list insert is null (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) -- likely missing a YAML tag");
 					return false;
 				}
 
@@ -447,7 +447,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					Report(
 						spec,
 						"edits",
-						$"Adding new entry of type {elementType.GetNiceTypeName()} to end of the list (step {spec.state.pathSegmentIndex})");
+						$"Adding new entry of type {elementType.GetNiceTypeName()} to end of the list (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount})");
 				}
 				else
 				{
@@ -455,7 +455,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					Report(
 						spec,
 						"edits",
-						$"Inserting new entry of type {elementType.GetNiceTypeName()} to index {index} of the list (step {spec.state.pathSegmentIndex})");
+						$"Inserting new entry of type {elementType.GetNiceTypeName()} to index {index} of the list (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount})");
 				}
 
 				var isTag = !emptyValue && elementType != typeString && spec.valueRaw.StartsWith("!");
@@ -474,7 +474,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Index {spec.state.pathSegment} (step {spec.state.pathSegmentIndex}) can't be removed as it's out of bounds for list size {list.Count}");
+						$"Index {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) can't be removed as it's out of bounds for list size {list.Count}");
 					return false;
 				}
 
@@ -482,7 +482,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"edits",
-					$"Removing entry at index {index} of the list (step {spec.state.pathSegmentIndex})");
+					$"Removing entry at index {index} of the list (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount})");
 				return false;
 			}
 
@@ -491,7 +491,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Index {spec.state.pathSegment} (step {spec.state.pathSegmentIndex}) can't be replaced as it's out of bounds for list size {list.Count}");
+					$"Index {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) can't be replaced as it's out of bounds for list size {list.Count}");
 				return false;
 			}
 
@@ -511,7 +511,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"attempts to edit",
-					$"Unable to produce map entry (step {spec.state.pathSegmentIndex}) - only keys of types [{permittedTypes}] are supported");
+					$"Unable to produce map entry (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) - only keys of types [{permittedTypes}] are supported");
 				return false;
 			}
 
@@ -522,7 +522,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				Report(
 					spec,
 					"attempts to edit",
-					$"Checking map for key {key} (step {spec.state.pathSegmentIndex}) - unable to cast key to the correct type");
+					$"Checking map for key {key} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) - unable to cast key to the correct type");
 				return false;
 			}
 			var entryExists = map.Contains(resolvedKey);
@@ -544,7 +544,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Can't proceed past {spec.state.pathSegment} (step {spec.state.pathSegmentIndex}), current target reference doesn't exist in dictionary)");
+					$"Can't proceed past {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}), current target reference doesn't exist in dictionary)");
 				return false;
 			}
 
@@ -576,14 +576,14 @@ namespace EchKode.PBMods.ProcessConfigEdit
 						ReportWarning(
 							spec,
 							"attempts to edit",
-							$"Default value for insert with key {key} is null (step: {spec.state.pathSegmentIndex}) -- likely missing a YAML tag");
+							$"Default value for insert with key {key} is null (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) -- likely missing a YAML tag");
 						return false;
 					}
 					map.Add(key, instance);
 					Report(
 						spec,
 						"edits",
-						$"Adding key {key} (step {spec.state.pathSegmentIndex}) to target dictionary");
+						$"Adding key {key} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) to target dictionary");
 				}
 				else
 				{
@@ -609,14 +609,14 @@ namespace EchKode.PBMods.ProcessConfigEdit
 					ReportWarning(
 						spec,
 						"attempts to edit",
-						$"Key {key} (step {spec.state.pathSegmentIndex}) can't be removed from target dictionary - it can't be found");
+						$"Key {key} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) can't be removed from target dictionary - it can't be found");
 					return false;
 				}
 
 				Report(
 					spec,
 					"edits",
-					$"Removing key {key} (step {spec.state.pathSegmentIndex}) from target dictionary");
+					$"Removing key {key} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) from target dictionary");
 				map.Remove(key);
 				return false;
 			}
@@ -632,7 +632,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					$"Field {spec.state.pathSegment} (step {spec.state.pathSegmentIndex}) could not be found on type {spec.state.targetType}");
+					$"Field {spec.state.pathSegment} (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount}) could not be found on type {spec.state.targetType}");
 				return false;
 			}
 
@@ -1050,7 +1050,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			if (ModLink.Settings.logging)
 			{
 				Debug.LogFormat(
-					"Mod {0} ({1}) {2} config {3} of type {4}, field {5} | {6}",
+					"Mod {0} ({1}) {2} config {3} of type {4} | field: {5} | {6}",
 					spec.modIndex,
 					spec.modID,
 					verb,
@@ -1064,7 +1064,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		private static void ReportWarning(EditSpec spec, string verb, string msg)
 		{
 			Debug.LogWarningFormat(
-				"Mod {0} ({1}) {2} config {3} of type {4}, field {5} | {6}",
+				"Mod {0} ({1}) {2} config {3} of type {4} | field: {5} | {6}",
 				spec.modIndex,
 				spec.modID,
 				verb,
