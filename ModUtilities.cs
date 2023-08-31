@@ -12,6 +12,9 @@ using HarmonyLib;
 
 using PhantomBrigade.Data;
 
+using QFSW.QC;
+using QFSW.QC.Parsers;
+
 using UnityEngine;
 
 namespace EchKode.PBMods.ProcessConfigEdit
@@ -89,6 +92,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		private static Dictionary<Type, Action<EditSpec, Action<object>>> updaterMap;
 		private static Dictionary<string, Type> tagTypeMap;
 		private static Dictionary<Type, object> defaultValueMap;
+		private static ColorParser colorParser;
 
 		internal static void Initialize()
 		{
@@ -152,6 +156,8 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				[typeFloat] = 0f,
 				[typeVector3] = Vector3.zero,
 			};
+
+			colorParser = new ColorParser();
 		}
 
 		internal static string FindConfigKeyIfEmpty(
@@ -837,16 +843,29 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 		private static void UpdateColorField(EditSpec spec, Action<object> update)
 		{
-			var v = Color.clear;
+			var v = Color.black;
 			if (spec.state.op != EditOperation.DefaultValue)
 			{
-				var (ok, parsed) = ParseVectorValue(spec, 4, ary => new Vector4(ary[0], ary[1], ary[2], ary[3]));
-				if (!ok)
+				if (!spec.valueRaw.StartsWith("(") || !spec.valueRaw.EndsWith(")"))
 				{
+					ReportWarning(
+						spec,
+						"attempts to edit",
+						$"Color field can't be overwritten - can't parse raw value {spec.valueRaw} - missing parentheses");
 					return;
 				}
-				var v4 = (Vector4)parsed;
-				v = new Color(v4.x, v4.y, v4.z, v4.w);
+				try
+				{
+					v = colorParser.Parse(spec.valueRaw.Substring(1, spec.valueRaw.Length - 2));
+				}
+				catch (ParserInputException ex)
+				{
+					ReportWarning(
+						spec,
+						"attempts to edit",
+						$"Can't parse raw value {spec.valueRaw} -- {ex.Message}");
+					return;
+				}
 			}
 
 			update(v);

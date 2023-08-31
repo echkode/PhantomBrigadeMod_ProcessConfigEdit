@@ -30,25 +30,38 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <SteamInstallationPath>C:\Program Files (x86)\Steam\steamapps\common\Phantom Brigade</SteamInstallationPath>
+    <EpicInstallationPath>$(GameInstallationPath)</EpicInstallationPath>
+    <GameInstallationPath>$(SteamInstallationPath)</GameInstallationPath>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>C:\Program Files\Epic Games\PhantomBrigade\PhantomBrigade_Data\Managed\0Harmony.dll</HintPath>
+      <HintPath>$(GameInstallationPath)\PhantomBrigade_Data\Managed\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>C:\Program Files\Epic Games\PhantomBrigade\PhantomBrigade_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(GameInstallationPath)\PhantomBrigade_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="QFSW.QC, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Program Files\Epic Games\PhantomBrigade\PhantomBrigade_Data\Managed\QFSW.QC.dll</HintPath>
+      <HintPath>$(GameInstallationPath)\PhantomBrigade_Data\Managed\QFSW.QC.dll</HintPath>
+    </Reference>
+    <Reference Include="QFSW.QC.Parsers, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(GameInstallationPath)\PhantomBrigade_Data\Managed\QFSW.QC.Parsers.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="UnityEngine">
-      <HintPath>C:\Program Files\Epic Games\PhantomBrigade\PhantomBrigade_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>$(GameInstallationPath)\PhantomBrigade_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>C:\Program Files\Epic Games\PhantomBrigade\PhantomBrigade_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(GameInstallationPath)\PhantomBrigade_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityUtilities, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(GameInstallationPath)\PhantomBrigade_Data\Managed\UnityUtilities.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
