@@ -90,7 +90,6 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		private static Dictionary<string, EditOperation> operationMap;
 		private static HashSet<EditOperation> allowedHashSetOperations;
 		private static Dictionary<Type, Action<EditSpec, Action<object>>> updaterMap;
-		private static Dictionary<string, Type> tagTypeMap;
 		private static Dictionary<Type, object> defaultValueMap;
 		private static ColorParser colorParser;
 
@@ -138,9 +137,9 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				[typeEnum] = UpdateEnum,
 			};
 
-			tagTypeMap = UtilitiesYAML.GetTagMappings();
 			if (ModLink.Settings.logging)
 			{
+				var tagTypeMap = UtilitiesYAML.GetTagMappings();
 				Debug.LogFormat(
 					"Mod {0} ({1}) YAML tags ({2}):\n  {3}",
 					ModLink.modIndex,
@@ -259,7 +258,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			var isTag = valueRaw.StartsWith("!");
 			if (isTag)
 			{
-				if (!tagTypeMap.TryGetValue(valueRaw, out instanceType))
+				if (!UtilitiesYAML.GetTagMappings().TryGetValue(valueRaw, out instanceType))
 				{
 					ReportWarning(
 						spec,
