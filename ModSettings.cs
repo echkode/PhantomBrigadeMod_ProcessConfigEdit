@@ -13,6 +13,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		{
 #pragma warning disable CS0649
 			public bool logging;
+			public bool logContext;
 #pragma warning restore CS0649
 		}
 
@@ -25,9 +26,11 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			if (Settings == null)
 			{
 				Settings = new ModSettings();
-
+			}
+			else
+			{
 				Debug.LogFormat(
-					"Mod {0} ({1}) no settings file found, using defaults | path: {2}",
+					"Mod {0} ({1}) settings file found | path: {2}",
 					modIndex,
 					modID,
 					settingsPath);
@@ -36,10 +39,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			if (Settings.logging)
 			{
 				Debug.LogFormat(
-					"Mod {0} ({1}) diagnostic logging is on: {2}",
+					"Mod {0} ({1}) diagnostic logging is on | context logging: {2}",
 					modIndex,
 					modID,
-					Settings.logging);
+					Settings.logContext ? "on" : "off");
 			}
 		}
 	}

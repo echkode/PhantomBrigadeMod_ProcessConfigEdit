@@ -927,7 +927,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			while (contextLevel < spec.pathContexts.Count)
 			{
-				Report(
+				ReportContext(
 					spec,
 					"levels down context in",
 					"Removed context: {0} | context level: {1}",
@@ -944,14 +944,14 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			spec.state.targetKey = pathContext.targetKey;
 			spec.state.fieldInfo = pathContext.fieldInfo;
 
-			Report(
+			ReportContext(
 				spec,
 				"using context in",
-				"Context: {0} | context level: {1} | target type: {2} | target: {3}",
+				"Context: {0} | context level: {1} | target type: {2} | target {3}",
 				contextFieldPathFormatter,
 				spec.pathContexts.Count,
 				spec.state.targetType?.GetNiceTypeName() ?? "<unknown>",
-				spec.state.target == null ? "<null>" : "<value>");
+				spec.state.target == null ? "is null" : "has value");
 
 			return true;
 		}
@@ -977,7 +977,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				{
 					pathContext.fieldSegments = spec.pathContexts.Last().fieldSegments;
 					spec.pathContexts[spec.pathContexts.Count - 1] = pathContext;
-					Report(
+					ReportContext(
 						spec,
 						"changes context values in",
 						"Context: {0} | context level: {1}",
@@ -989,7 +989,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				pathContext.fieldSegments = spec.fieldPath.Substring(pos);
 			}
 			spec.pathContexts.Add(pathContext);
-			Report(
+			ReportContext(
 				spec,
 				"assigns context in",
 				"Added context: {0} | context level: {1}",
@@ -1013,7 +1013,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				return;
 			}
-			Report(
+			ReportContext(
 				spec,
 				"removes context in",
 				"Removed context: {0} | context level: {1}",
@@ -1472,6 +1472,16 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		private static void Report(EditSpec spec, string verb, string fmt, params object[] args)
 		{
 			if (!ModLink.Settings.logging)
+			{
+				return;
+			}
+			(fmt, args) = PrepareReportArgs(spec, verb, fmt, args);
+			Debug.LogFormat(fmt, args);
+		}
+
+		private static void ReportContext(EditSpec spec, string verb, string fmt, params object[] args)
+		{
+			if (!ModLink.Settings.logContext)
 			{
 				return;
 			}
