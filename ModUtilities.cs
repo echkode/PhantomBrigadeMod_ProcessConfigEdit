@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 using HarmonyLib;
 
@@ -30,7 +31,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			NullValue,
 		}
 
-		internal class EditSpec
+		internal partial class EditSpec
 		{
 			public string dataTypeName;
 			public object root;
@@ -304,22 +305,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 			if (spec.state.fieldInfo == null)
 			{
-				var parentType = spec.state.parent?.GetType().GetNiceTypeName() ?? "null";
-				var targetType = spec.state.target?.GetType().GetNiceTypeName() ?? "null";
 				ReportWarning(
 					spec,
 					"attempts to edit",
-					"no target field info -- WalkFieldPath() failed to terminate properly"
-						+ $" | segment: {spec.state.pathSegment}"
-						+ $" | segmentIndex: {spec.state.pathSegmentIndex}"
-						+ $" | segmentCount: {spec.state.pathSegmentCount}"
-						+ $" | atEnd: {spec.state.atEndOfPath}"
-						+ $" | op: {spec.state.op}"
-						+ $" | parent: {parentType}"
-						+ $" | target: {targetType}"
-						+ $" | targetType: {spec.state.targetType}"
-						+ $" | targetIndex: {spec.state.targetIndex}"
-						+ $" | targetKey: {spec.state.targetKey}");
+					$"no target field info -- WalkFieldPath() failed to terminate properly | {spec}");
 				return;
 			}
 
@@ -1083,6 +1072,35 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				spec.dataTypeName,
 				spec.fieldPath,
 				msg);
+		}
+
+		partial class EditSpec
+		{
+			public const string pipeDelimiter = " | ";
+			public string ToDelimitedString(string delimiter, bool showEditStepValues = false)
+			{
+				var parentType = state.parent?.GetType().GetNiceTypeName() ?? "null";
+				var targetType = state.target?.GetType().GetNiceTypeName() ?? "null";
+				var sb = new StringBuilder();
+				if (showEditStepValues)
+				{
+					sb.AppendFormat("dataTypeName: {0}", dataTypeName)
+						.AppendFormat("{0}fieldPath: {1}", delimiter, fieldPath)
+						.AppendFormat("{0}valueRaw: {1}{0}", delimiter, valueRaw);
+				}
+				sb.AppendFormat("segment: {0}", state.pathSegment)
+					.AppendFormat("{0}segmentIndex: {1}", delimiter, state.pathSegmentIndex)
+					.AppendFormat("{0}segmentCount: {1}", delimiter, state.pathSegmentCount)
+					.AppendFormat("{0}atEnd: {1}", delimiter, state.atEndOfPath)
+					.AppendFormat("{0}op: {1}", delimiter, state.op)
+					.AppendFormat("{0}parent: {1}", delimiter, parentType)
+					.AppendFormat("{0}target: {1}", delimiter, targetType)
+					.AppendFormat("{0}targetType: {1}", delimiter, state.targetType.GetNiceTypeName())
+					.AppendFormat("{0}targetIndex: {1}", delimiter, state.targetIndex)
+					.AppendFormat("{0}targetKey: {1}", delimiter, state.targetKey);
+				return sb.ToString();
+			}
+			public override string ToString() => ToDelimitedString(pipeDelimiter);
 		}
 	}
 }
