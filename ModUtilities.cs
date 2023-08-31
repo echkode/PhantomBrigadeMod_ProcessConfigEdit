@@ -195,6 +195,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		{
 			if (string.IsNullOrEmpty(spec.fieldPath) || string.IsNullOrEmpty(spec.valueRaw))
 			{
+				ReportWarning(
+					spec,
+					"fails to edit",
+					$"Missing field path ({spec.fieldPath}) or raw value ({spec.valueRaw})");
 				return;
 			}
 
