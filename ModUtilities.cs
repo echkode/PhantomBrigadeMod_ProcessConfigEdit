@@ -34,7 +34,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			public string filename;
 			public string fieldPath;
 			public string valueRaw;
-			public int i;
+			public int modIndex;
 			public string modID;
 			public EditState state = new EditState();
 		}
@@ -1045,7 +1045,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				Debug.LogFormat(
 					"Mod {0} ({1}) {2} config {3} of type {4}, field {5} | {6}",
-					spec.i,
+					spec.modIndex,
 					spec.modID,
 					verb,
 					spec.filename,
@@ -1059,7 +1059,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		{
 			Debug.LogWarningFormat(
 				"Mod {0} ({1}) {2} config {3} of type {4}, field {5} | {6}",
-				spec.i,
+				spec.modIndex,
 				spec.modID,
 				verb,
 				spec.filename,

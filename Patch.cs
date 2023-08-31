@@ -34,7 +34,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 		{
 			var spec = new ModUtilities.EditSpec()
 			{
-				i = i,
+				modIndex = i,
 				modID = modID,
 				filename = ModUtilities.FindConfigKeyIfEmpty(target, dataTypeName, filename),
 				dataTypeName = dataTypeName,
@@ -46,7 +46,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				Debug.LogFormat(
 					"Mod {0} ({1}) applying edit to config {2} path {3}",
-					spec.i,
+					spec.modIndex,
 					spec.modID,
 					spec.filename,
 					spec.fieldPath);
