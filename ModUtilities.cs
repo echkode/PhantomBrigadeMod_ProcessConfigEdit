@@ -648,6 +648,15 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 		private static (bool, Action<object>) ValidateEditState(EditSpec spec)
 		{
+			if (spec.state.parent == null)
+			{
+				ReportWarning(
+					spec,
+					"attempts to edit",
+					$"Arrived at a null parent after walking field path (I{spec.state.pathSegmentIndex} S{spec.state.pathSegmentIndex + 1}/{spec.state.pathSegmentCount})");
+				return (false, null);
+			}
+
 			var parentType = spec.state.parent.GetType();
 			var parentIsList = typeIList.IsAssignableFrom(parentType);
 			if (parentIsList)
