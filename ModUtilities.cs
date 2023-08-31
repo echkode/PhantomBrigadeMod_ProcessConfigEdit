@@ -137,17 +137,12 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			tagTypeMap = UtilitiesYAML.GetTagMappings();
 			if (ModLink.Settings.logging)
 			{
-				var mappings = new List<string>();
-				foreach (var kvp in tagTypeMap)
-				{
-					mappings.Add(kvp.Key + ": " + kvp.Value.Name);
-				}
 				Debug.LogFormat(
 					"Mod {0} ({1}) YAML tags ({2}):\n  {3}",
 					ModLink.modIndex,
 					ModLink.modID,
-					mappings.Count,
-					string.Join("\n  ", mappings));
+					tagTypeMap.Count,
+					tagTypeMap.ToStringFormattedKeyValuePairs(true, multilinePrefix: "  "));
 			}
 
 			defaultValueMap = new Dictionary<Type, object>()
