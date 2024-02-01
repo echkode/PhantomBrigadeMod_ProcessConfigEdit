@@ -1466,6 +1466,10 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			{
 				return null;
 			}
+			if (elementType.IsAbstract)
+			{
+				return null;
+			}
 			return Activator.CreateInstance(elementType);
 		}
 
