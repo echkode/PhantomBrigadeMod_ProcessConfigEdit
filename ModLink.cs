@@ -47,7 +47,6 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 
 			ModUtilities.Initialize();
-			ConsoleCommands.Loader.RegisterCommands();
 
 			Debug.LogFormat(
 				"Mod {0} ({1}) is initialized",

@@ -57,7 +57,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				valueRaw = valueRaw,
 				pathContexts = pathContexts,
 			};
-			if (ModLink.Settings.logging)
+			if (ModLink.Settings.logDiagnostics)
 			{
 				Debug.LogFormat(
 					"Mod {0} ({1}) applying edit to config {2} path {3}",

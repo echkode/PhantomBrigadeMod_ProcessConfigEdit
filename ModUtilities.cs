@@ -165,7 +165,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 				[typeEnum] = UpdateEnum,
 			};
 
-			if (ModLink.Settings.logging)
+			if (ModLink.Settings.logTagMap)
 			{
 				var tagTypeMap = UtilitiesYAML.GetTagMappings();
 				Debug.LogFormat(
@@ -1475,7 +1475,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 		private static void Report(EditSpec spec, string verb, string fmt, params object[] args)
 		{
-			if (!ModLink.Settings.logging)
+			if (!ModLink.Settings.logDiagnostics)
 			{
 				return;
 			}
