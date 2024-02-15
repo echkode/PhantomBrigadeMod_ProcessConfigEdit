@@ -768,7 +768,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			}
 
 			spec.state.parent = spec.state.target;
-			spec.state.target = map[key];
+			spec.state.target = map[resolvedKey];
 			spec.state.targetType = valueType;
 			spec.state.targetIndex = -1;
 			spec.state.targetKey = resolvedKey;
