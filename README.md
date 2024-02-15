@@ -1,8 +1,8 @@
 # ProcessConfigEdit
 
-**This mod is no longer needed.** The game has been patched by the publisher to fix a number of issues with processing config edit files.
+**This is a proposed extension to the ConfigEdit syntax.** It conflicts with a similar but more limited syntax that the game already recognizes.
 
-A library mod for [Phantom Brigade](https://braceyourselfgames.com/phantom-brigade/) that works around an unintentional limitation with ConfigEdit processing.
+A library mod for [Phantom Brigade](https://braceyourselfgames.com/phantom-brigade/) that adds shorthand tokens to the ConfigEdit syntax.
 
 Sections
 
