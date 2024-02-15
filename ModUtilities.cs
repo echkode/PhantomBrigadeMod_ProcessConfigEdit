@@ -482,7 +482,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 
 				if (root && spec.pathContexts.Count != 0)
 				{
-					Report(
+					ReportContext(
 						spec,
 						"clears context in",
 						"No context in root | segment: {0}",
