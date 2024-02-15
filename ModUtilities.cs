@@ -552,7 +552,7 @@ namespace EchKode.PBMods.ProcessConfigEdit
 			spec.state.fieldInfo = null;
 			spec.state.targetIndex = -1;
 			spec.state.targetKey = resolvedKey;
-			spec.state.target = map[key];
+			spec.state.target = map[resolvedKey];
 			spec.state.targetType = valueType;
 
 			return true;
